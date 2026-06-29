@@ -4,6 +4,7 @@ import type { IKinaCompilerOptions } from "./types/compiler";
 import path from "path";
 import { existsSync } from "fs";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
+import { KinaASTParser } from "@kina-lang/ast";
 
 export class KinaCompiler {
   private readonly logger: KinaLogger = new KinaLogger(KinaCompiler.name);
@@ -35,6 +36,13 @@ export class KinaCompiler {
         ),
         JSON.stringify(tokens, null, 2),
       );
+
+      const ast = await new KinaASTParser(tokens, file).parse();
+
+      await writeFile(
+        path.join(buildRoot, "ast", file.replaceAll("/", "$") + ".__ast.json"),
+        JSON.stringify(ast, null, 2),
+      );
     }
   }
 
@@ -59,6 +67,9 @@ export class KinaCompiler {
 
     this.logger.debug("Creating lexer directory...");
     await mkdir(path.join(buildRoot, "lexer"), { recursive: true });
+
+    this.logger.debug("Creating ast directory...");
+    await mkdir(path.join(buildRoot, "ast"), { recursive: true });
 
     return buildRoot;
   }

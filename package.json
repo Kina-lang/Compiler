@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@kina-lang/lexer": "workspace:*",
+    "@kina-lang/ast": "workspace:*",
     "@kina-lang/utils": "workspace:*"
   },
   "bin": {
