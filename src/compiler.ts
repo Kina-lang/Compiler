@@ -5,6 +5,7 @@ import path from "path";
 import { existsSync } from "fs";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import { KinaASTParser } from "@kina-lang/ast";
+import { KinaSemanticAnalyzer } from "@kina-lang/semantic-analyzer";
 
 export class KinaCompiler {
   private readonly logger: KinaLogger = new KinaLogger(KinaCompiler.name);
@@ -43,6 +44,8 @@ export class KinaCompiler {
         path.join(buildRoot, "ast", file.replaceAll("/", "$") + ".__ast.json"),
         JSON.stringify(ast, null, 2),
       );
+
+      await new KinaSemanticAnalyzer(ast).analyze();
     }
   }
 
