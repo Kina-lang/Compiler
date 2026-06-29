@@ -10,7 +10,8 @@
     "@kina-lang/lexer": "workspace:*",
     "@kina-lang/ast": "workspace:*",
     "@kina-lang/utils": "workspace:*",
-    "@kina-lang/semantic-analyzer": "workspace:*"
+    "@kina-lang/semantic-analyzer": "workspace:*",
+    "@kina-lang/ir-builder": "workspace:*"
   },
   "bin": {
     "kinc": "./src/bin/cli.ts"
