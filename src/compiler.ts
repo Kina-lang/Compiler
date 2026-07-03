@@ -124,8 +124,8 @@ export class KinaCompiler {
   }
 
   private async optimizeIR(filePath: string, ir: string) {
-    await new Promise<void>((res) => {
-      const proc = spawn("opt", ["-Oz", "-S"]);
+    const optimizedIR = await new Promise<string>((res) => {
+      const proc = spawn("opt", ["-O3", "-S"]);
 
       proc.on("spawn", () => {
         proc.stdin.write(ir);
@@ -145,17 +145,17 @@ export class KinaCompiler {
         if (code !== null && code !== 0)
           throw new KinaAssertionError(`opt exited with code ${code}`);
 
-        res();
+        res(optimizedIR);
       });
     });
 
     if (this._options.debug?.emitOptimizedLLVM)
       await this.emitDebugArtifact(
         `${filePath.replaceAll("/", "$")}.__opt.ll`,
-        ir,
+        optimizedIR,
       );
 
-    return ir;
+    return optimizedIR;
   }
 
   private async compileIr(
