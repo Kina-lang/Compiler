@@ -1,22 +1,24 @@
-import { KinaLexer } from "@kina-lang/lexer";
-import { KinaLogger } from "@kina-lang/utils";
+import { BaseToken, KinaASI, KinaLexer } from "@kina-lang/lexer";
+import { KinaAssertionError, KinaLogger } from "@kina-lang/utils";
 import type { IKinaCompilerOptions } from "./types/compiler";
 import path from "path";
 import { existsSync } from "fs";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import {
-  EKinaASTNodeKind,
-  KinaASTLiteralExpressionNode,
-  KinaASTParser,
+  FileNode,
+  IncludeDirectiveNode,
+  KinaAST,
+  NodeKind,
 } from "@kina-lang/ast";
 import { KinaSemanticAnalyzer } from "@kina-lang/semantic-analyzer";
+import type { Scope } from "@kina-lang/semantic-analyzer";
 import { KinaIRBuilder } from "@kina-lang/ir-builder";
 import { spawn } from "child_process";
-import type { KinaASTNode } from "@kina-lang/ast/src/nodes/_node";
-import type { KinaASTIncludeDirectiveNode } from "@kina-lang/ast/src/nodes/includeDirective";
 
 export class KinaCompiler {
   private readonly logger: KinaLogger = new KinaLogger(KinaCompiler.name);
+  private readonly _options: IKinaCompilerOptions;
+  private _buildRoot: string | null = null;
 
   // TODO: Move this into language SDK dir on production build
   private static readonly RUNTIME_PATH = path.join(
@@ -24,95 +26,192 @@ export class KinaCompiler {
     "../../../runtime/build/kina-runtime.a",
   );
 
-  constructor() {}
+  constructor(options: IKinaCompilerOptions) {
+    this._options = options;
+  }
 
-  public async compile(options: IKinaCompilerOptions) {
-    this.logger.info(`Compiling ${options.name}@${options.version}`);
+  public async compile() {
+    this.logger.info(
+      `Compiling ${this._options.name}@${this._options.version}`,
+    );
 
-    const buildRoot = await this.prepareBuildDirectoryTree(options);
+    const buildRoot = await this.prepareBuildDirectoryTree();
+    this._buildRoot = buildRoot;
 
-    const files = [options.entry];
-
-    const includes: string[] = [];
-
-    while (files.length > 0) {
-      const file = files.shift()!;
-      const fullPath = path.join(options.rootDir, file);
-
-      const tokens = await new KinaLexer().process(
-        file,
-        await readFile(fullPath, "utf-8"),
-      );
-
-      await writeFile(
-        path.join(
-          buildRoot,
-          "lexer",
-          file.replaceAll("/", "$") + ".__lex.json",
-        ),
-        JSON.stringify(tokens, null, 2),
-      );
-
-      const ast = await new KinaASTParser(tokens, file).parse();
-
-      await writeFile(
-        path.join(buildRoot, "ast", file.replaceAll("/", "$") + ".__ast.json"),
-        JSON.stringify(ast, null, 2),
-      );
-
-      const symbolTable = await new KinaSemanticAnalyzer(ast).analyze();
-      await writeFile(
-        path.join(buildRoot, "sa", file.replaceAll("/", "$") + ".__sa.json"),
-        JSON.stringify(symbolTable.toJson(), null, 2),
-      );
-
-      const { includedCFiles } = await this.processDirectives(fullPath, ast);
-      includes.push(...includedCFiles);
-
-      const ir = await new KinaIRBuilder(ast, symbolTable).build();
-
-      await writeFile(
-        path.join(buildRoot, "ir", file.replaceAll("/", "$") + ".__ir.ll"),
-        ir,
-      );
-    }
+    const files = [this._options.entry];
 
     const outPath = path.join(
       buildRoot,
-      path.basename(options.entry).split(".").slice(0, -1).join("."),
+      path.basename(this._options.entry).split(".").slice(0, -1).join("."),
     );
 
-    await new Promise<void>((res) => {
-      const proc = spawn(
-        "clang",
-        [
-          path.join(
-            buildRoot,
-            "ir",
-            options.entry.replaceAll("/", "$") + ".__ir.ll",
-          ),
-          KinaCompiler.RUNTIME_PATH,
-          ...includes,
-          "-o",
-          outPath,
-        ],
-        {
-          stdio: "inherit",
-        },
-      );
+    while (files.length > 0) {
+      const file = files.shift()!;
+      const fullPath = path.join(this._options.rootDir, file);
 
-      proc.on("exit", res);
-    });
+      const fileContents = await readFile(fullPath, "utf-8");
+      const tokens = await this.tokenize(file, fileContents);
+      const ast = await this.buildAST(file, tokens);
+      const scope = await this.semanticallyAnalyze(file, ast);
+      const ir = await this.buildIR(file, ast, scope);
+      const optIr = await this.optimizeIR(file, ir);
+      const { includedCFiles } = await this.processDirectives(fullPath, ast);
+      await this.compileIr(file, optIr, includedCFiles, outPath);
+    }
 
     return outPath;
   }
 
-  private async prepareBuildDirectoryTree(options: IKinaCompilerOptions) {
+  private async tokenize(filePath: string, fileContents: string) {
+    const lexer = new KinaLexer({
+      fileName: filePath,
+      rootDir: this._options.rootDir,
+      skipUnknownTokens: false,
+    });
+
+    const rawTokens = lexer.tokenize(fileContents);
+    const mandatoryAndNewlines = lexer.filterMandatory(rawTokens, true);
+    const asiProcessed = new KinaASI().process(mandatoryAndNewlines);
+    const mandatoryAsiProcessed = lexer.filterMandatory(asiProcessed, false);
+
+    if (this._options.debug?.emitTokenized)
+      await this.emitDebugArtifact(
+        `${filePath.replaceAll("/", "$")}.__tokens.json`,
+        mandatoryAsiProcessed.map((t) => t.export()),
+      );
+
+    return mandatoryAsiProcessed;
+  }
+
+  private async buildAST(filePath: string, tokens: BaseToken[]) {
+    const ast = new KinaAST();
+
+    const tree = ast.build(tokens);
+
+    if (this._options.debug?.emitAST)
+      await this.emitDebugArtifact(
+        `${filePath.replaceAll("/", "$")}.__ast.json`,
+        tree.export(),
+      );
+
+    return tree;
+  }
+
+  private async semanticallyAnalyze(filePath: string, ast: FileNode) {
+    const sa = new KinaSemanticAnalyzer();
+    const scope = sa.analyze(ast);
+
+    if (this._options.debug?.emitSymbols)
+      await this.emitDebugArtifact(
+        `${filePath.replaceAll("/", "$")}.__symbols.json`,
+        scope.export(),
+      );
+
+    return scope;
+  }
+
+  private async buildIR(filePath: string, ast: FileNode, scope: Scope) {
+    const irBuilder = new KinaIRBuilder();
+    const ir = irBuilder.build(ast, scope);
+
+    if (this._options.debug?.emitLLVM)
+      await this.emitDebugArtifact(
+        `${filePath.replaceAll("/", "$")}.__ir.ll`,
+        ir,
+      );
+
+    return ir;
+  }
+
+  private async optimizeIR(filePath: string, ir: string) {
+    await new Promise<void>((res) => {
+      const proc = spawn("opt", ["-Oz", "-S"]);
+
+      proc.on("spawn", () => {
+        proc.stdin.write(ir);
+        proc.stdin.end();
+      });
+
+      let optimizedIR = "";
+      proc.stdout.on("data", (data) => {
+        optimizedIR += data.toString();
+      });
+
+      proc.stderr.on("data", (data) => {
+        this.logger.error(data.toString());
+      });
+
+      proc.on("close", (code) => {
+        if (code !== null && code !== 0)
+          throw new KinaAssertionError(`opt exited with code ${code}`);
+
+        res();
+      });
+    });
+
+    if (this._options.debug?.emitOptimizedLLVM)
+      await this.emitDebugArtifact(
+        `${filePath.replaceAll("/", "$")}.__opt.ll`,
+        ir,
+      );
+
+    return ir;
+  }
+
+  private async compileIr(
+    filePath: string,
+    ir: string,
+    includedFiles: string[],
+    outPath: string,
+  ) {
+    await new Promise<void>((res) => {
+      const proc = spawn("clang", [
+        KinaCompiler.RUNTIME_PATH,
+        ...includedFiles,
+        "-x",
+        "ir",
+        "-",
+        "-o",
+        outPath,
+      ]);
+
+      proc.on("spawn", () => {
+        proc.stdin.write(ir);
+        proc.stdin.end();
+      });
+
+      proc.stderr.on("data", (data) => {
+        this.logger.error(data.toString());
+      });
+
+      proc.on("close", (code) => {
+        if (code !== null && code !== 0)
+          throw new KinaAssertionError(`clang exited with code ${code}`);
+
+        res();
+      });
+    });
+  }
+
+  private async emitDebugArtifact(
+    name: string,
+    content: string | Record<string, any> | Array<any>,
+  ) {
+    const str =
+      typeof content === "string" ? content : JSON.stringify(content, null, 2);
+
+    this.logger.debug(`Emitting debug artifact: ${name}`);
+    const p = path.join(this._buildRoot!, "debug", name);
+
+    await writeFile(p, str, "utf-8");
+  }
+
+  private async prepareBuildDirectoryTree() {
     this.logger.debug("Preparing build directory tree...");
 
     const buildRoot = path.join(
-      options.buildDir,
-      `${options.name}@${options.version}`,
+      this._options.buildDir,
+      `${this._options.name}@${this._options.version}`,
     );
     this.logger.debug(`Build root: ${buildRoot}`);
 
@@ -126,37 +225,24 @@ export class KinaCompiler {
     this.logger.debug("Creating directory...");
     await mkdir(buildRoot, { recursive: true });
 
-    this.logger.debug("Creating lexer directory...");
-    await mkdir(path.join(buildRoot, "lexer"), { recursive: true });
-
-    this.logger.debug("Creating ast directory...");
-    await mkdir(path.join(buildRoot, "ast"), { recursive: true });
-
-    this.logger.debug("Creating ir directory...");
-    await mkdir(path.join(buildRoot, "ir"), { recursive: true });
-
-    this.logger.debug("Creating sa directory...");
-    await mkdir(path.join(buildRoot, "sa"), { recursive: true });
+    this.logger.debug("Creating debug directory...");
+    await mkdir(path.join(buildRoot, "debug"), { recursive: true });
 
     return buildRoot;
   }
 
-  private async processDirectives(filePath: string, ast: KinaASTNode[]) {
+  private async processDirectives(filePath: string, ast: FileNode) {
     const includedCFiles: string[] = [];
 
-    for (const node of ast) {
-      switch (node.kind) {
-        case EKinaASTNodeKind.IncludeDirective:
-          includedCFiles.push(
-            path.resolve(
-              path.dirname(filePath),
-              (node as KinaASTIncludeDirectiveNode).argument.value,
-            ),
-          );
-          break;
-        default:
-          continue;
-      }
+    for (const node of ast.nodes) {
+      if (node.kind != NodeKind.IncludeDirective) continue;
+
+      const includeNode = node;
+      const includePath = path.resolve(
+        path.dirname(filePath),
+        (includeNode as IncludeDirectiveNode).path,
+      );
+      includedCFiles.push(includePath);
     }
 
     return { includedCFiles };

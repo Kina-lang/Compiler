@@ -13,9 +13,6 @@
     "@kina-lang/semantic-analyzer": "workspace:*",
     "@kina-lang/ir-builder": "workspace:*"
   },
-  "bin": {
-    "kinc": "./src/bin/cli.ts"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
