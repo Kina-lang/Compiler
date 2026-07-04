@@ -34,6 +34,7 @@ export class KinaCompiler {
     this.logger.info(
       `Compiling ${this._options.name}@${this._options.version}`,
     );
+    const s_time = performance.now();
 
     const buildRoot = await this.prepareBuildDirectoryTree();
     this._buildRoot = buildRoot;
@@ -58,6 +59,11 @@ export class KinaCompiler {
       const { includedCFiles } = await this.processDirectives(fullPath, ast);
       await this.compileIr(file, optIr, includedCFiles, outPath);
     }
+
+    const e_time = performance.now();
+    this.logger.info(
+      `Compilation finished in ${(e_time - s_time).toFixed(2)}ms`,
+    );
 
     return outPath;
   }
