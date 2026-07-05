@@ -2,7 +2,7 @@ import { BaseToken, KinaASI, KinaLexer } from "@kina-lang/lexer";
 import { KinaAssertionError, KinaLogger } from "@kina-lang/utils";
 import type { IKinaCompilerOptions } from "./types/compiler";
 import path from "path";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import {
   FileNode,
@@ -14,11 +14,16 @@ import { KinaSemanticAnalyzer } from "@kina-lang/semantic-analyzer";
 import type { Scope } from "@kina-lang/semantic-analyzer";
 import { KinaIRBuilder } from "@kina-lang/ir-builder";
 import { spawn } from "child_process";
+import Parser from "tree-sitter";
+import C from "tree-sitter-c";
+import type { KinaTypeTokenKind } from "@kina-lang/ast/src/types/types";
+import { TypeTranslator } from "./TypeTranslator";
 
 export class KinaCompiler {
   private readonly logger: KinaLogger = new KinaLogger(KinaCompiler.name);
   private readonly _options: IKinaCompilerOptions;
   private _buildRoot: string | null = null;
+  private _includedFiles: string[] = [];
 
   // TODO: Move this into language SDK dir on production build
   private static readonly RUNTIME_PATH = path.join(
@@ -105,7 +110,7 @@ export class KinaCompiler {
 
   private async semanticallyAnalyze(filePath: string, ast: FileNode) {
     const sa = new KinaSemanticAnalyzer();
-    const scope = sa.analyze(ast);
+    const scope = sa.analyze(ast, this, filePath);
 
     if (this._options.debug?.emitSymbols)
       await this.emitDebugArtifact(
@@ -174,6 +179,8 @@ export class KinaCompiler {
       const proc = spawn("clang", [
         KinaCompiler.RUNTIME_PATH,
         ...includedFiles,
+        ...this._includedFiles,
+        "-O3",
         "-x",
         "ir",
         "-",
@@ -252,5 +259,81 @@ export class KinaCompiler {
     }
 
     return { includedCFiles };
+  }
+
+  public resolveIncludePath(includePath: string, currentFilePath: string) {
+    const resolvedPath = path.resolve(
+      path.dirname(currentFilePath),
+      includePath,
+    );
+
+    if (!existsSync(resolvedPath))
+      throw new KinaAssertionError(
+        `Include file not found: ${includePath} (resolved to ${resolvedPath})`,
+      );
+
+    return resolvedPath;
+  }
+
+  public getCSymbols(
+    filePath: string,
+  ): Record<
+    string,
+    { returnType: KinaTypeTokenKind; parameterTypes: KinaTypeTokenKind[] }
+  > {
+    const parser = new Parser();
+    // @ts-ignore Module 'tree-sitter-c' has bad typing
+    parser.setLanguage(C as any);
+
+    const fileContents = readFileSync(filePath, "utf-8");
+    const tree = parser.parse(fileContents);
+
+    const symbols: Record<
+      string,
+      { returnType: KinaTypeTokenKind; parameterTypes: KinaTypeTokenKind[] }
+    > = {};
+
+    for (const node of tree.rootNode.children) {
+      if (node.type !== "function_definition") continue;
+
+      const functionNameNode = node
+        .childForFieldName("declarator")
+        ?.childForFieldName("declarator");
+      if (!functionNameNode) continue;
+
+      const returnTypeNode = node.childForFieldName("type");
+      if (!returnTypeNode) continue;
+
+      const parameterTypeNodes = node
+        .childForFieldName("declarator")
+        ?.childForFieldName("parameters")
+        ?.namedChildren.filter((n) => n.type === "parameter_declaration");
+      if (!parameterTypeNodes) continue;
+
+      const functionName = functionNameNode.text;
+      const returnType = returnTypeNode.text;
+      const parameterTypes = parameterTypeNodes.map((n) => {
+        const typeNode = n.childForFieldName("type");
+        if (!typeNode)
+          throw new KinaAssertionError(
+            `Parameter declaration missing type: ${n.text}`,
+          );
+
+        return typeNode.text;
+      });
+
+      symbols[functionName] = {
+        returnType: TypeTranslator.cToKina(returnType),
+        parameterTypes: parameterTypes.map((t) => TypeTranslator.cToKina(t)),
+      };
+    }
+
+    return symbols;
+  }
+
+  public includeFile(filePath: string) {
+    if (this._includedFiles.includes(filePath)) return;
+
+    this._includedFiles.push(filePath);
   }
 }

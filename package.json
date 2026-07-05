@@ -12,7 +12,9 @@
     "@kina-lang/ir-builder": "workspace:*",
     "@kina-lang/lexer": "workspace:*",
     "@kina-lang/semantic-analyzer": "workspace:*",
-    "@kina-lang/utils": "workspace:*"
+    "@kina-lang/utils": "workspace:*",
+    "tree-sitter": "^0.25.0",
+    "tree-sitter-c": "^0.24.1"
   },
   "keywords": [],
   "author": "",
