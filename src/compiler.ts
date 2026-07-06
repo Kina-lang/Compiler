@@ -18,6 +18,7 @@ import Parser from "tree-sitter";
 import C from "tree-sitter-c";
 import type { KinaTypeTokenKind } from "@kina-lang/ast/src/types/types";
 import { TypeTranslator } from "./TypeTranslator";
+import { KinaProjectConfig } from "./project_config";
 
 export class KinaCompiler {
   private readonly logger: KinaLogger = new KinaLogger(KinaCompiler.name);
@@ -73,6 +74,33 @@ export class KinaCompiler {
     return outPath;
   }
 
+  public async compileIncludedFile(filePath: string, currentFilePath: string) {
+    this.logger.info(`Compiling included file: ${filePath}`);
+
+    const relativePath = path.relative(this._options.rootDir, filePath);
+    const outObjPath = path.join(
+      this._buildRoot!,
+      `${relativePath.replaceAll("/", "$")}.o`,
+    );
+
+    const fileContents = await readFile(filePath, "utf-8");
+    const tokens = await this.tokenize(relativePath, fileContents);
+    const ast = await this.buildAST(relativePath, tokens);
+    const scope = await this.semanticallyAnalyze(relativePath, ast, true);
+    const ir = await this.buildIR(relativePath, ast, scope, true);
+    const optIr = await this.optimizeIR(relativePath, ir);
+    const { includedCFiles } = await this.processDirectives(filePath, ast);
+    await this.compileIrObject(relativePath, optIr, outObjPath);
+
+    for (const includedFile of [...includedCFiles]) {
+      this.includeFile(includedFile);
+    }
+
+    this.includeFile(outObjPath);
+
+    return { scope };
+  }
+
   private async tokenize(filePath: string, fileContents: string) {
     const lexer = new KinaLexer({
       fileName: filePath,
@@ -108,9 +136,13 @@ export class KinaCompiler {
     return tree;
   }
 
-  private async semanticallyAnalyze(filePath: string, ast: FileNode) {
+  private async semanticallyAnalyze(
+    filePath: string,
+    ast: FileNode,
+    isIncluded: boolean = false,
+  ) {
     const sa = new KinaSemanticAnalyzer();
-    const scope = sa.analyze(ast, this, filePath);
+    const scope = await sa.analyze(ast, this, filePath, isIncluded);
 
     if (this._options.debug?.emitSymbols)
       await this.emitDebugArtifact(
@@ -121,9 +153,14 @@ export class KinaCompiler {
     return scope;
   }
 
-  private async buildIR(filePath: string, ast: FileNode, scope: Scope) {
+  private async buildIR(
+    filePath: string,
+    ast: FileNode,
+    scope: Scope,
+    isIncluded: boolean = false,
+  ) {
     const irBuilder = new KinaIRBuilder();
-    const ir = irBuilder.build(ast, scope);
+    const ir = irBuilder.build(ast, scope, isIncluded);
 
     if (this._options.debug?.emitLLVM)
       await this.emitDebugArtifact(
@@ -181,6 +218,36 @@ export class KinaCompiler {
         ...includedFiles,
         ...this._includedFiles,
         "-O3",
+        "-x",
+        "ir",
+        "-",
+        "-o",
+        outPath,
+      ]);
+
+      proc.on("spawn", () => {
+        proc.stdin.write(ir);
+        proc.stdin.end();
+      });
+
+      proc.stderr.on("data", (data) => {
+        this.logger.error(data.toString());
+      });
+
+      proc.on("close", (code) => {
+        if (code !== null && code !== 0)
+          throw new KinaAssertionError(`clang exited with code ${code}`);
+
+        res();
+      });
+    });
+  }
+
+  private async compileIrObject(filePath: string, ir: string, outPath: string) {
+    await new Promise<void>((res) => {
+      const proc = spawn("clang", [
+        "-O3",
+        "-c",
         "-x",
         "ir",
         "-",
@@ -273,6 +340,50 @@ export class KinaCompiler {
       );
 
     return resolvedPath;
+  }
+
+  public resolveNamespacedPath(includePath: string, currentFilePath: string) {
+    const kinaModuleDir = path.join(
+      this._options.rootDir,
+      ".kina_modules",
+      includePath.split(".")[0]!,
+      includePath.split(".")[1]!,
+    );
+    if (!existsSync(kinaModuleDir))
+      throw new KinaAssertionError(
+        `Namespaced module not found: ${includePath}`,
+      );
+
+    const moduleConfigPath = path.join(kinaModuleDir, "kina.toml");
+    if (!existsSync(moduleConfigPath))
+      throw new KinaAssertionError(
+        `Namespaced module config not found: ${includePath} (expected at ${moduleConfigPath})`,
+      );
+
+    const modConfig = KinaProjectConfig.parse(
+      readFileSync(moduleConfigPath, "utf-8"),
+    );
+    if (!modConfig)
+      throw new KinaAssertionError(
+        `Failed to parse module config: ${moduleConfigPath}`,
+      );
+
+    const entryDirname = path.dirname(modConfig.package.entry);
+    const fullRoot = path.join(kinaModuleDir, entryDirname);
+    let filepath = fullRoot;
+
+    for (const part of includePath.split(".").slice(2)) {
+      filepath = path.join(filepath, part);
+    }
+
+    filepath = path.join(filepath, "lib.kin");
+
+    if (!existsSync(filepath))
+      throw new KinaAssertionError(
+        `Include file not found: ${includePath} (resolved to ${filepath})`,
+      );
+
+    return filepath;
   }
 
   public getCSymbols(
