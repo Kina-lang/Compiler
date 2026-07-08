@@ -4,7 +4,9 @@ import { KinaAssertionError } from "@kina-lang/utils";
 
 export class TypeTranslator {
   static cToKina(cType: string): KinaTypeTokenKind {
-    switch (cType) {
+    const normalized = cType.replace(/\s+/g, " ").trim();
+
+    switch (normalized) {
       case "int":
         return TokenKind.TypeInt;
       case "bool":
@@ -12,6 +14,9 @@ export class TypeTranslator {
       case "void":
         return TokenKind.TypeVoid;
       default:
+        if (normalized.endsWith("*") || normalized.includes("*"))
+          return TokenKind.TypePtr;
+
         throw new KinaAssertionError(`Unknown C type: ${cType}`);
     }
   }

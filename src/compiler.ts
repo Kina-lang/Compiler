@@ -407,22 +407,41 @@ export class KinaCompiler {
     for (const node of tree.rootNode.children) {
       if (node.type !== "function_definition") continue;
 
-      const functionNameNode = node
-        .childForFieldName("declarator")
-        ?.childForFieldName("declarator");
-      if (!functionNameNode) continue;
+      const declaratorNode = node.childForFieldName("declarator");
+      if (!declaratorNode) continue;
+
+      let currentDecl = declaratorNode;
+      while (currentDecl.childForFieldName("declarator")) {
+        currentDecl = currentDecl.childForFieldName("declarator")!;
+      }
+
+      const functionNameNode = currentDecl;
+      if (!functionNameNode || functionNameNode.type !== "identifier") continue;
 
       const returnTypeNode = node.childForFieldName("type");
       if (!returnTypeNode) continue;
 
-      const parameterTypeNodes = node
-        .childForFieldName("declarator")
+      let functionDeclaratorNode = declaratorNode;
+      while (
+        functionDeclaratorNode &&
+        functionDeclaratorNode.type !== "function_declarator"
+      ) {
+        functionDeclaratorNode =
+          functionDeclaratorNode.childForFieldName("declarator")!;
+      }
+
+      const parameterTypeNodes = functionDeclaratorNode
         ?.childForFieldName("parameters")
         ?.namedChildren.filter((n) => n.type === "parameter_declaration");
       if (!parameterTypeNodes) continue;
 
       const functionName = functionNameNode.text;
-      const returnType = returnTypeNode.text;
+
+      let returnType = returnTypeNode.text;
+      if (declaratorNode.type === "pointer_declarator") {
+        returnType = `${returnType}*`;
+      }
+
       const parameterTypes = parameterTypeNodes.map((n) => {
         const typeNode = n.childForFieldName("type");
         if (!typeNode)
@@ -430,7 +449,10 @@ export class KinaCompiler {
             `Parameter declaration missing type: ${n.text}`,
           );
 
-        return typeNode.text;
+        const paramDecl = n.childForFieldName("declarator");
+        const isPointer = paramDecl && paramDecl.text.startsWith("*");
+
+        return isPointer ? `${typeNode.text}*` : typeNode.text;
       });
 
       symbols[functionName] = {
