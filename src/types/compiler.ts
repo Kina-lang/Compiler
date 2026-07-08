@@ -1,6 +1,9 @@
+import type { BuildTargetType } from "../classes/BuildTarget";
+
 export interface IKinaCompilerOptions {
   rootDir: string;
   buildDir: string;
+  target: BuildTargetType;
   entry: string;
 
   debug?: {

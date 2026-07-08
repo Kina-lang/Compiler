@@ -1,2 +1,3 @@
-export { KinaCompiler } from "./compiler";
-export { KinaProjectConfig } from "./project_config";
+export * from "./classes/KinaCompiler";
+export * from "./classes/KinaProjectConfig";
+export * from "./classes/BuildTarget";
