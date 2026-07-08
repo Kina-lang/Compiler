@@ -3,7 +3,7 @@ import { TokenKind } from "@kina-lang/lexer";
 import { KinaAssertionError } from "@kina-lang/utils";
 
 export class TypeTranslator {
-  static cToKina(cType: string): KinaTypeTokenKind {
+  cToKina(cType: string): KinaTypeTokenKind {
     const normalized = cType.replace(/\s+/g, " ").trim();
 
     switch (normalized) {
