@@ -133,7 +133,7 @@ export class KinaCompiler {
     const relativeFilePath = path.relative(this._config.rootDir, file);
 
     if (this._includesCache.has(relativeFilePath))
-      return this._includesCache.get(relativeFilePath)!;
+      return { scope: this._includesCache.get(relativeFilePath)! };
 
     this._logger.info(`Compiling ${relativeFilePath}...`);
     this._metrics.capture("total");
