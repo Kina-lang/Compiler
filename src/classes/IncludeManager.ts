@@ -4,6 +4,8 @@ export class IncludeManager {
   constructor() {}
 
   public add(includePath: string) {
+    if (this._includes.has(includePath)) return;
+
     this._includes.add(includePath);
   }
 

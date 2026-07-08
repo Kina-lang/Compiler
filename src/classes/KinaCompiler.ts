@@ -9,6 +9,7 @@ import { CSymbols } from "./CSymbols";
 import { TypeTranslator } from "./TypeTranslator";
 import { IncludeManager } from "./IncludeManager";
 import { readFile } from "fs/promises";
+import type { Scope } from "@kina-lang/semantic-analyzer";
 
 export class KinaCompiler {
   private readonly _config: IKinaCompilerOptions;
@@ -17,6 +18,8 @@ export class KinaCompiler {
   private _buildRoot: string | null = null;
   private _objDir: string | null = null;
   private readonly _steps = getSteps(this);
+  private readonly _includesCache: Map<string, Scope> = new Map([]);
+  private readonly _cIncludesCache: Set<string> = new Set([]);
 
   public readonly pathResolver = new PathResolver(this);
   public readonly cSymbols = new CSymbols(this);
@@ -129,6 +132,9 @@ export class KinaCompiler {
 
     const relativeFilePath = path.relative(this._config.rootDir, file);
 
+    if (this._includesCache.has(relativeFilePath))
+      return this._includesCache.get(relativeFilePath)!;
+
     this._logger.info(`Compiling ${relativeFilePath}...`);
     this._metrics.capture("total");
 
@@ -173,6 +179,8 @@ export class KinaCompiler {
     this._metrics.capture("total");
     this._metrics = previousMetrics;
 
+    this._includesCache.set(relativeFilePath, semanticAnalysisStepResult);
+
     return { scope: semanticAnalysisStepResult };
   }
 
@@ -185,6 +193,8 @@ export class KinaCompiler {
       this._objDir!,
       relativeFilePath.replaceAll("_", "__").replaceAll("/", "_") + ".o",
     );
+
+    if (this._cIncludesCache.has(relativeFilePath)) return;
 
     this._logger.info(`Compiling ${relativeFilePath}...`);
     this._metrics.capture("total");
@@ -200,5 +210,7 @@ export class KinaCompiler {
 
     this._metrics.capture("total");
     this._metrics = previousMetrics;
+
+    this._cIncludesCache.add(relativeFilePath);
   }
 }
