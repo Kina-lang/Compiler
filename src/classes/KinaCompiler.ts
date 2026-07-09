@@ -34,7 +34,7 @@ export class KinaCompiler {
   );
   private static readonly RUNTIME_HEADERS_DIR = path.join(
     KinaCompiler.RUNTIME_DIR,
-    "include",
+    "../include",
   );
 
   constructor(config: IKinaCompilerOptions) {
