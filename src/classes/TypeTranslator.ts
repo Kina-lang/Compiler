@@ -13,6 +13,9 @@ export class TypeTranslator {
         return TokenKind.TypeBool;
       case "void":
         return TokenKind.TypeVoid;
+      case "struct KinaString":
+      case "KinaString":
+        return TokenKind.TypeString;
       default:
         if (normalized.endsWith("*") || normalized.includes("*"))
           return TokenKind.TypePtr;
