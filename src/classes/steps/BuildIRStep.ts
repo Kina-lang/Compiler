@@ -14,11 +14,15 @@ export class BuildIRStep extends CompilationStep<string> {
     opts: IKinaCompilerOptions,
     ast: FileNode,
     scope: Scope,
+    fileName: string,
     isIncluded: boolean = false,
   ): Promise<string> {
     return this.withMetrics("build-ir", async () => {
       const builder = new KinaIRBuilder();
       const ir = builder.build(ast, scope, isIncluded);
+
+      if (opts.debug?.emitLLVM)
+        this._compiler.debugArtifactEmitter.add(fileName, "ir", ir, ".ll");
 
       return ir;
     });

@@ -8,9 +8,16 @@ export class OptimizeIRStep extends CompilationStep<string> {
     super(compiler);
   }
 
-  override execute(opts: IKinaCompilerOptions, ir: string): Promise<string> {
+  override execute(
+    opts: IKinaCompilerOptions,
+    ir: string,
+    fileName: string,
+  ): Promise<string> {
     return this.withMetrics("optimize-ir", async () => {
       const res = await CommandRunner.runWithPipe("opt", ["-O3", "-S"], ir);
+
+      if (opts.debug?.emitOptimizedLLVM)
+        this._compiler.debugArtifactEmitter.add(fileName, "opt-ir", res, ".ll");
 
       return res;
     });

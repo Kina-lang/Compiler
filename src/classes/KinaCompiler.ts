@@ -10,6 +10,7 @@ import { TypeTranslator } from "./TypeTranslator";
 import { IncludeManager } from "./IncludeManager";
 import { readFile } from "fs/promises";
 import type { Scope } from "@kina-lang/semantic-analyzer";
+import { DebugArtifactEmitter } from "./DebugArtifactEmitter";
 
 export class KinaCompiler {
   private readonly _config: IKinaCompilerOptions;
@@ -25,6 +26,7 @@ export class KinaCompiler {
   public readonly cSymbols = new CSymbols(this);
   public readonly typeTranslator = new TypeTranslator();
   public readonly includeManager = new IncludeManager();
+  public readonly debugArtifactEmitter = new DebugArtifactEmitter();
 
   private static readonly RUNTIME_DIR = path.join(
     import.meta.filename,
@@ -79,10 +81,12 @@ export class KinaCompiler {
     const readfileStepResult = await this._steps.Readfile.execute(this._config);
     const tokenizeStepResult = await this._steps.Tokenize.execute(
       this._config,
+      this._config.entry,
       readfileStepResult.fileContent,
     );
     const buildastStepResult = await this._steps.Buildast.execute(
       this._config,
+      this._config.entry,
       tokenizeStepResult,
     );
     const semanticAnalysisStepResult =
@@ -95,10 +99,12 @@ export class KinaCompiler {
       this._config,
       buildastStepResult,
       semanticAnalysisStepResult,
+      this._config.entry,
     );
     const optimizeirStepResult = await this._steps.OptimizeIR.execute(
       this._config,
       buildirStepResult,
+      this._config.entry,
     );
     const compileStepResult = await this._steps.Compile.execute(
       this._config,
@@ -122,6 +128,8 @@ export class KinaCompiler {
       `Compilation finished in ${compilationTime.toFixed(2)}ms`,
     );
 
+    await this.debugArtifactEmitter.emit(buildRoot);
+
     return outPath;
   }
 
@@ -144,10 +152,12 @@ export class KinaCompiler {
     );
     const tokenizeStepResult = await this._steps.Tokenize.execute(
       this._config,
+      relativeFilePath,
       readfileStepResult.fileContent,
     );
     const buildastStepResult = await this._steps.Buildast.execute(
       this._config,
+      relativeFilePath,
       tokenizeStepResult,
     );
     const semanticAnalysisStepResult =
@@ -161,11 +171,13 @@ export class KinaCompiler {
       this._config,
       buildastStepResult,
       semanticAnalysisStepResult,
+      relativeFilePath,
       true,
     );
     const optimizeirStepResult = await this._steps.OptimizeIR.execute(
       this._config,
       buildirStepResult,
+      relativeFilePath,
     );
     const compileStepResult = await this._steps.Compile.execute(
       this._config,

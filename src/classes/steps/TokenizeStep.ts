@@ -10,6 +10,7 @@ export class TokenizeStep extends CompilationStep<BaseToken[]> {
 
   override async execute(
     opts: IKinaCompilerOptions,
+    fileName: string,
     fileContents: string,
   ): Promise<BaseToken[]> {
     return this.withMetrics("tokenize", async () => {
@@ -24,6 +25,14 @@ export class TokenizeStep extends CompilationStep<BaseToken[]> {
       const mandatoryAndNewlines = lexer.filterMandatory(tokens, true);
       const asiProcessed = asi.process(mandatoryAndNewlines);
       const mandatoryAsiProcessed = lexer.filterMandatory(asiProcessed, false);
+
+      if (opts.debug?.emitTokenized)
+        this._compiler.debugArtifactEmitter.add(
+          fileName,
+          "lex",
+          JSON.stringify(mandatoryAsiProcessed, null, 2),
+          ".json",
+        );
 
       return mandatoryAsiProcessed;
     });
