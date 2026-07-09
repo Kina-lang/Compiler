@@ -32,6 +32,10 @@ export class KinaCompiler {
     import.meta.filename,
     "../../../../runtime/build",
   );
+  private static readonly RUNTIME_HEADERS_DIR = path.join(
+    KinaCompiler.RUNTIME_DIR,
+    "include",
+  );
 
   constructor(config: IKinaCompilerOptions) {
     this._config = config;
@@ -211,11 +215,14 @@ export class KinaCompiler {
     this._logger.info(`Compiling ${relativeFilePath}...`);
     this._metrics.capture("total");
 
+    const cFileDir = path.dirname(file);
+
     const compileStepResult = await BuildTarget.getTarget(
       this._config.target,
     ).buildObjectFileFromC(
       await readFile(file, { encoding: "utf-8" }),
       outPath,
+      [cFileDir, KinaCompiler.RUNTIME_HEADERS_DIR],
     );
 
     this.includeManager.add(outPath);

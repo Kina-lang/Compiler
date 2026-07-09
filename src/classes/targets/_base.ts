@@ -4,7 +4,11 @@ export abstract class CompilationTarget {
     output: string,
   ): Promise<void>;
 
-  abstract buildObjectFileFromC(input: string, output: string): Promise<void>;
+  abstract buildObjectFileFromC(
+    input: string,
+    output: string,
+    includeDirs?: string[],
+  ): Promise<void>;
 
   abstract buildOutput(
     includedFiles: Set<string>,

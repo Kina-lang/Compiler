@@ -21,12 +21,18 @@ export class X86_64UnknownLinuxGnuTarget extends CompilationTarget {
   override async buildObjectFileFromC(
     input: string,
     output: string,
+    includeDirs?: string[],
   ): Promise<void> {
-    const stdout = await CommandRunner.runWithPipe(
-      "clang",
-      ["-O3", "-c", "-x", "c", "-", "-o", output],
-      input,
-    );
+    const clangArgs = ["-O3", "-c", "-x", "c"];
+
+    if (includeDirs)
+      for (const dir of includeDirs) {
+        clangArgs.push(`-I${dir}`);
+      }
+
+    clangArgs.push("-", "-o", output);
+
+    const stdout = await CommandRunner.runWithPipe("clang", clangArgs, input);
   }
 
   override async buildOutput(

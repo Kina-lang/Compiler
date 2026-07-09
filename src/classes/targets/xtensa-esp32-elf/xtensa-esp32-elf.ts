@@ -27,14 +27,19 @@ export class XtensaESP32ELFTarget extends CompilationTarget {
   override async buildObjectFileFromC(
     input: string,
     output: string,
+    includeDirs?: string[],
   ): Promise<void> {
     const gccPath = await this._idf.resolveGCC();
+    const gccArgs = ["-mlongcalls", "-O3", "-c", "-x", "c"];
 
-    await CommandRunner.runWithPipe(
-      gccPath,
-      ["-mlongcalls", "-O3", "-c", "-x", "c", "-", "-o", output],
-      input,
-    );
+    if (includeDirs)
+      for (const dir of includeDirs) {
+        gccArgs.push(`-I${dir}`);
+      }
+
+    gccArgs.push("-", "-o", output);
+
+    await CommandRunner.runWithPipe(gccPath, gccArgs, input);
   }
 
   override async buildOutput(
