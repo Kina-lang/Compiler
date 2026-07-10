@@ -18,7 +18,7 @@ export class BuildIRStep extends CompilationStep<string> {
     isIncluded: boolean = false,
   ): Promise<string> {
     return this.withMetrics("build-ir", async () => {
-      const builder = new KinaIRBuilder();
+      const builder = new KinaIRBuilder(this._compiler);
       const ir = builder.build(ast, scope, isIncluded);
 
       if (opts.debug?.emitLLVM)
