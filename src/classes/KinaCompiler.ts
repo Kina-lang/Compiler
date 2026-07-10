@@ -82,59 +82,68 @@ export class KinaCompiler {
     this._buildRoot = buildRoot;
     this._objDir = objDir;
 
-    const readfileStepResult = await this._steps.Readfile.execute(this._config);
-    const tokenizeStepResult = await this._steps.Tokenize.execute(
-      this._config,
-      this._config.entry,
-      readfileStepResult.fileContent,
-    );
-    const buildastStepResult = await this._steps.Buildast.execute(
-      this._config,
-      this._config.entry,
-      tokenizeStepResult,
-    );
-    const semanticAnalysisStepResult =
-      await this._steps.SemanticAnalysis.execute(
+    try {
+      const readfileStepResult = await this._steps.Readfile.execute(
+        this._config,
+      );
+      const tokenizeStepResult = await this._steps.Tokenize.execute(
+        this._config,
+        this._config.entry,
+        readfileStepResult.fileContent,
+      );
+      const buildastStepResult = await this._steps.Buildast.execute(
+        this._config,
+        this._config.entry,
+        tokenizeStepResult,
+      );
+      const semanticAnalysisStepResult =
+        await this._steps.SemanticAnalysis.execute(
+          this._config,
+          buildastStepResult,
+          readfileStepResult.filePath,
+        );
+      const buildirStepResult = await this._steps.BuildIR.execute(
         this._config,
         buildastStepResult,
-        readfileStepResult.filePath,
+        semanticAnalysisStepResult,
+        this._config.entry,
       );
-    const buildirStepResult = await this._steps.BuildIR.execute(
-      this._config,
-      buildastStepResult,
-      semanticAnalysisStepResult,
-      this._config.entry,
-    );
-    const optimizeirStepResult = await this._steps.OptimizeIR.execute(
-      this._config,
-      buildirStepResult,
-      this._config.entry,
-    );
-    const compileStepResult = await this._steps.Compile.execute(
-      this._config,
-      optimizeirStepResult,
-      this._config.entry,
-      objDir,
-    );
+      const optimizeirStepResult = await this._steps.OptimizeIR.execute(
+        this._config,
+        buildirStepResult,
+        this._config.entry,
+      );
+      const compileStepResult = await this._steps.Compile.execute(
+        this._config,
+        optimizeirStepResult,
+        this._config.entry,
+        objDir,
+      );
 
-    // Add runtime into linker inputs
-    this.includeManager.add(this.getRuntimePath(this._config.target));
-    this.includeManager.add(compileStepResult);
+      // Add runtime into linker inputs
+      this.includeManager.add(this.getRuntimePath(this._config.target));
+      this.includeManager.add(compileStepResult);
 
-    const outPath = await BuildTarget.getTarget(
-      this._config.target,
-    ).buildOutput(this.includeManager.getAll(), buildRoot);
+      const outPath = await BuildTarget.getTarget(
+        this._config.target,
+      ).buildOutput(this.includeManager.getAll(), buildRoot);
 
-    this._metrics.capture("total");
-    const compilationTime = this._metrics.calculateDelta("total");
+      this._metrics.capture("total");
+      const compilationTime = this._metrics.calculateDelta("total");
 
-    this._logger.info(
-      `Compilation finished in ${compilationTime.toFixed(2)}ms`,
-    );
+      this._logger.info(
+        `Compilation finished in ${compilationTime.toFixed(2)}ms`,
+      );
 
-    await this.debugArtifactEmitter.emit(buildRoot);
+      await this.debugArtifactEmitter.emit(buildRoot);
 
-    return outPath;
+      return outPath;
+    } catch (e) {
+      this._logger.fatal(`Compilation failed: ${(e as Error).message}`);
+      await this.debugArtifactEmitter.emit(buildRoot);
+
+      throw e;
+    }
   }
 
   // TODO: Add caching
