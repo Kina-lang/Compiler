@@ -1,7 +1,9 @@
 package main
 
-import "martinpetr.dev/kina/internal/compiler"
+import "martinpetr.dev/kina/internal/driver"
 
 func main() {
-	compiler.Greet("Martin")
+	driver.Compile("src/main.kin", driver.Options{
+		Out: "build/main",
+	});
 }
