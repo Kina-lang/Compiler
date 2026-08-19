@@ -6,6 +6,8 @@ import (
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 // File is one source file + its line index
@@ -72,12 +74,20 @@ type Diagnostic struct {
 // Bag collects diagnostics for every module in the program
 type Bag struct {
 	list []Diagnostic
+	Color bool
 }
 
 // Reporter is a Bag bound to a specific file
 type Reporter struct {
 	bag *Bag
 	file *File
+}
+
+// Creates a new diagnostics Bag
+func NewBag(color bool) *Bag {
+	return &Bag{
+		Color: color,
+	}
 }
 
 // Get reporter for the specified file
@@ -96,10 +106,12 @@ func (bag *Bag) HasErrors() bool {
 }
 
 // Prints error if any errors got reported
-func (bag *Bag) Err() error {
+func (bag *Bag) Err(w io.Writer) error {
 	if len(bag.list) == 0 {
 		return nil
 	}
+
+	bag.Render(w)
 
 	return fmt.Errorf("%d error(s)", len(bag.list))
 }
@@ -120,7 +132,11 @@ func (bag *Bag) Render(w io.Writer) {
 		line, col := diagnostic.File.LineCol(diagnostic.Start) // Get line and column of the diagnostic (the one where the diagnostic starts)
 
 		// Print file:line:col (clickable in IDEs), code and error message
-		fmt.Fprintf(w, "%s:%d:%d: %s: %s\n", diagnostic.File.Name, line, col, diagnostic.Code, diagnostic.Message)
+		if bag.Color {
+			fmt.Fprintf(w, "%s %s%s %s\n", color.BlackString(fmt.Sprintf("%s:%d:%d", diagnostic.File.Name, line, col)), color.HiRedString(diagnostic.Code), color.BlackString(":"), diagnostic.Message)
+		} else {
+			fmt.Fprintf(w, "%s:%d:%d %s: %s\n", diagnostic.File.Name, line, col, diagnostic.Code, diagnostic.Message)
+		}
 
 		// Print source code line and pointer to the columns affected
 		fmt.Fprintf(w, "  %s\n", diagnostic.File.LineText(line))

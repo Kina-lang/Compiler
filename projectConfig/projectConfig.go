@@ -1,6 +1,10 @@
 package projectConfig
 
-import "github.com/pelletier/go-toml/v2"
+import (
+	"os"
+
+	"github.com/pelletier/go-toml/v2"
+)
 
 type ProjectConfigProject struct {
 	Name string `toml:"name"`
@@ -22,4 +26,19 @@ func (c *ProjectConfig) String() (string, error) {
 	b, err := toml.Marshal(c)
 
 	return string(b), err
+}
+
+func ParseFile(path string) (*ProjectConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var config ProjectConfig
+	err = toml.Unmarshal(data, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }

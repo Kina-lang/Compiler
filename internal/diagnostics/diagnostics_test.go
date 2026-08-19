@@ -65,7 +65,7 @@ func TestNoTrailingNewline(t *testing.T) {
 
 func TestRenderSortsByPosition(t *testing.T) {
 	file := NewFile("main.kin", src)
-	bag := &Bag{}
+	bag := NewBag(false)
 	reporter := bag.For(file)
 
 	// Emitted out of order on purpose
@@ -75,10 +75,10 @@ func TestRenderSortsByPosition(t *testing.T) {
 	var buf bytes.Buffer
 	bag.Render(&buf)
 
-	want := "main.kin:2:16: E0234: insane programmer wrote this, refusing to compile!\n" +
+	want := "main.kin:2:16 E0234: insane programmer wrote this, refusing to compile!\n" +
 			"    val a: int = 3.1\n" +
 			"                 ^^^\n" +
-			"main.kin:3:1: E0123: function 'main' must return a value on all paths\n" +
+			"main.kin:3:1 E0123: function 'main' must return a value on all paths\n" +
             "  }\n" +
             "  ^\n"
 
@@ -91,13 +91,13 @@ func TestRenderSortsByPosition(t *testing.T) {
 // visible caret
 func TestZeroWidthSpan(t *testing.T) {
 	file := NewFile("main.kin", src)
-	bag := &Bag{}
+	bag := NewBag(false)
 	bag.For(file).Errorf(18, 18, "E0345", "expected ';'")
 
 	var buf bytes.Buffer
 	bag.Render(&buf)
 
-	want := "main.kin:1:19: E0345: expected ';'\n" +
+	want := "main.kin:1:19 E0345: expected ';'\n" +
 			"  func main(): int {\n"+
 			"                    ^\n"
 
