@@ -19,7 +19,7 @@ func lexLineComment(scanner *Scanner) Token {
 	content := scanner.AdvanceUntil(isLineBreak)
 
 	return Token{
-		Kind: LineCommentToken,
+		Kind:  LineCommentToken,
 		Value: "//" + string(content),
 		Span: Span{
 			Start: start,
@@ -37,7 +37,7 @@ func lexBlockComment(scanner *Scanner) Token {
 	scanner.Advance() // Consume the '/'
 
 	return Token{
-		Kind: BlockCommentToken,
+		Kind:  BlockCommentToken,
 		Value: "/*" + string(content) + "*/",
 		Span: Span{
 			Start: start,

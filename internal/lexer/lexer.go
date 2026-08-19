@@ -18,57 +18,57 @@ func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) LexerR
 		current := scanner.Advance()
 
 		switch {
-			case isDigit(current):
-				start := scanner.cursor - 1
-				number := lexNumberValue(current, scanner)
-				tokens = append(tokens, createNumberToken(scanner, start, number))
+		case isDigit(current):
+			start := scanner.cursor - 1
+			number := lexNumberValue(current, scanner)
+			tokens = append(tokens, createNumberToken(scanner, start, number))
 
-			case isValidIdentifierStartChar(current):
-				start := scanner.cursor - 1
-				identifier := lexIdentifierValue(current, scanner)
+		case isValidIdentifierStartChar(current):
+			start := scanner.cursor - 1
+			identifier := lexIdentifierValue(current, scanner)
 
-				if (identifierIsKeyword(identifier)) {
-					tokens = append(tokens, createKeywordToken(scanner, start, identifier))
-				} else {
-					tokens = append(tokens, createIdentifierToken(scanner, start, identifier))
+			if identifierIsKeyword(identifier) {
+				tokens = append(tokens, createKeywordToken(scanner, start, identifier))
+			} else {
+				tokens = append(tokens, createIdentifierToken(scanner, start, identifier))
+			}
+
+		// This case needs to be after any other case lexing anything that can start with a character
+		// parsed by this case.
+		case isCharacterToken(current):
+			tokens = append(tokens, createCharacterToken(scanner, scanner.cursor-1, current))
+
+		case isLineBreak(current):
+			tokens = append(tokens, lexNewline(current, scanner))
+
+		case isWhitespace(current):
+			// Skip whitespace
+
+		default:
+			switch current {
+			case '/':
+				next := scanner.Peek()
+				if next == '/' || next == '*' {
+					tokens = append(tokens, lexComment(current, scanner))
+					break
 				}
 
-			// This case needs to be after any other case lexing anything that can start with a character
-			// parsed by this case.
-			case isCharacterToken(current):
-				tokens = append(tokens, createCharacterToken(scanner, scanner.cursor-1, current))
-
-			case isLineBreak(current):
-				tokens = append(tokens, lexNewline(current, scanner))
-
-			case isWhitespace(current):
-				// Skip whitespace
+			case '"', '\'':
+				tokens = append(tokens, lexStringLiteral(current, scanner))
 
 			default:
-				switch current {
-					case '/':
-						next := scanner.Peek()
-						if next == '/' || next == '*' {
-							tokens = append(tokens, lexComment(current, scanner))
-							break
-						}
-
-					case '"', '\'':
-						tokens = append(tokens, lexStringLiteral(current, scanner))
-
-					default:
-						reporter.Errorf(scanner.cursor-1, scanner.cursor, diagnostics.InvalidTokenDiagnosticCode, "Unexpected character: '%c'", current)
-				}
+				reporter.Errorf(scanner.cursor-1, scanner.cursor, diagnostics.InvalidTokenDiagnosticCode, "Unexpected character: '%c'", current)
+			}
 
 		}
 	}
 
 	tokens = append(tokens, Token{
-		Kind: EOFToken,
+		Kind:  EOFToken,
 		Value: "EOF",
 		Span: Span{
 			Start: scanner.cursor,
-			End: scanner.cursor,
+			End:   scanner.cursor,
 		},
 	})
 
@@ -87,10 +87,10 @@ func (r *LexerResult) RemoveNonEssential() LexerResult {
 
 	for _, token := range r.Tokens {
 		switch token.Kind {
-			case LineCommentToken, BlockCommentToken, NewlineToken:
-				// Skip newlines and comments
-			default:
-				resultTokens = append(resultTokens, token)
+		case LineCommentToken, BlockCommentToken, NewlineToken:
+			// Skip newlines and comments
+		default:
+			resultTokens = append(resultTokens, token)
 		}
 	}
 

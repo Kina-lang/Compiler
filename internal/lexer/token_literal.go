@@ -7,7 +7,7 @@ func lexNumberValue(token byte, scanner *Scanner) string {
 	var includesDot bool = false
 
 	valueString := string(token) + string(
-		scanner.AdvanceWhile(func (b byte) bool {
+		scanner.AdvanceWhile(func(b byte) bool {
 			// Only allow one dot in the number literal
 			if b == '.' {
 				if includesDot {
@@ -45,7 +45,7 @@ func createNumberToken(scanner *Scanner, start int, value string) Token {
 	}
 
 	return Token{
-		Kind: kind,
+		Kind:  kind,
 		Value: value,
 		Span: Span{
 			Start: start,
@@ -79,7 +79,7 @@ func lexStringLiteral(token byte, scanner *Scanner) Token {
 	fullContent := string(wantedQuote) + string(content) + string(wantedQuote)
 
 	return Token{
-		Kind: StringLiteralToken,
+		Kind:  StringLiteralToken,
 		Value: fullContent,
 		Span: Span{
 			Start: start,

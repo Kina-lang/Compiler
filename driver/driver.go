@@ -15,7 +15,7 @@ type Options struct {
 	Out string
 }
 
-type parseProjectFilesResult struct {}
+type parseProjectFilesResult struct{}
 
 type parseFileResult struct {
 	Imports []string
@@ -63,7 +63,7 @@ func Compile(projectPath string, opt Options) error {
 // Parses (lex + ast) all project files starting from the entrypoint file
 // Resolved imports are also parsed recursively (results cached)
 func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnosticsBag *diagnostics.Bag) (*parseProjectFilesResult, error) {
-	var pathsToParse []string = []string{absEntrypointPath} // List of files to parse (entrypoint + imports)
+	var pathsToParse []string = []string{absEntrypointPath}                             // List of files to parse (entrypoint + imports)
 	var parsedFileResults map[string]parseFileResult = make(map[string]parseFileResult) // Cache of parsed file results (key is abs file path)
 
 	var cwd, err = os.Getwd()

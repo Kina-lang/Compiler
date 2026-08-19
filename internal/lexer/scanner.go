@@ -1,7 +1,7 @@
 package lexer
 
 type Scanner struct {
-	bytes []byte
+	bytes    []byte
 	filePath string
 
 	cursor int
@@ -9,7 +9,7 @@ type Scanner struct {
 
 func NewScanner(filePath string, src []byte) *Scanner {
 	return &Scanner{
-		bytes: src,
+		bytes:    src,
 		filePath: filePath,
 	}
 }

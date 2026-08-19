@@ -7,10 +7,10 @@ import (
 )
 
 type ProjectConfigProject struct {
-	Name string `toml:"name"`
-	Author string `toml:"author"`
+	Name    string `toml:"name"`
+	Author  string `toml:"author"`
 	Version string `toml:"version"`
-	Entry string `toml:"entry"`
+	Entry   string `toml:"entry"`
 }
 
 type ProjectConfigDependency struct {
@@ -18,7 +18,7 @@ type ProjectConfigDependency struct {
 }
 
 type ProjectConfig struct {
-	Project ProjectConfigProject `toml:"project"`
+	Project      ProjectConfigProject               `toml:"project"`
 	Dependencies map[string]ProjectConfigDependency `toml:"dependencies"`
 }
 

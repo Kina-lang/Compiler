@@ -15,14 +15,14 @@ var src = []byte("func main(): int {\n  val a: int = 3.1\n}\n")
 func TestLineCol(t *testing.T) {
 	file := NewFile("main.kin", src)
 	tests := []struct {
-		offset int
+		offset    int
 		line, col int
 	}{
-		{0, 1, 1}, // first byte
+		{0, 1, 1},   // first byte
 		{17, 1, 18}, // {, last byte of line 1
-		{19, 2, 1}, // first byte after a newline
+		{19, 2, 1},  // first byte after a newline
 		{34, 2, 16}, // the 3 of 3.1
-		{38, 3, 1}, // }
+		{38, 3, 1},  // }
 	}
 
 	for _, tt := range tests {
@@ -76,15 +76,15 @@ func TestRenderSortsByPosition(t *testing.T) {
 	bag.Render(&buf)
 
 	want := "main.kin:2:16 E0234: insane programmer wrote this, refusing to compile!\n" +
-			"    val a: int = 3.1\n" +
-			"                 ^^^\n" +
-			"main.kin:3:1 E0123: function 'main' must return a value on all paths\n" +
-            "  }\n" +
-            "  ^\n"
+		"    val a: int = 3.1\n" +
+		"                 ^^^\n" +
+		"main.kin:3:1 E0123: function 'main' must return a value on all paths\n" +
+		"  }\n" +
+		"  ^\n"
 
-    if buf.String() != want {
-    	t.Errorf("Render() =\n%s\nwant\n%s", buf.String(), want)
-    }
+	if buf.String() != want {
+		t.Errorf("Render() =\n%s\nwant\n%s", buf.String(), want)
+	}
 }
 
 // Test synthetic token (inserted semicolon - ASI) with zero-width span - must still produce
@@ -98,8 +98,8 @@ func TestZeroWidthSpan(t *testing.T) {
 	bag.Render(&buf)
 
 	want := "main.kin:1:19 E0345: expected ';'\n" +
-			"  func main(): int {\n"+
-			"                    ^\n"
+		"  func main(): int {\n" +
+		"                    ^\n"
 
 	if buf.String() != want {
 		t.Errorf("Render() =\n%s\nwant\n%s", buf.String(), want)

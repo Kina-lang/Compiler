@@ -14,8 +14,8 @@ import (
 // Spans are byte offsets, line/column is derived on demand,
 // not stored per token.
 type File struct {
-	Name string
-	src []byte
+	Name  string
+	src   []byte
 	lines []int // byte offset of each line start
 }
 
@@ -41,7 +41,7 @@ func (file *File) LineCol(offset int) (line, col int) {
 	// Finds the line that contains the byte offset
 	// Finds lowest line number that has offset larger than the wanted
 	// offset and then subtracts 1 (=> get the line that includes the offset)
-	i := sort.Search(len(file.lines), func (i int) bool {
+	i := sort.Search(len(file.lines), func(i int) bool {
 		return file.lines[i] > offset
 	}) - 1
 
@@ -52,7 +52,7 @@ func (file *File) LineCol(offset int) (line, col int) {
 // Gets text on the specified line
 func (file *File) LineText(line int) string {
 	start := file.lines[line-1] // start byte offset
-	end := len(file.src) // last available byte offset
+	end := len(file.src)        // last available byte offset
 
 	// If not last line
 	if line < len(file.lines) {
@@ -65,21 +65,21 @@ func (file *File) LineText(line int) string {
 }
 
 type Diagnostic struct {
-	File *File
-	Code string // "Exxxx"
+	File       *File
+	Code       string // "Exxxx"
 	Start, End int
-	Message string
+	Message    string
 }
 
 // Bag collects diagnostics for every module in the program
 type Bag struct {
-	list []Diagnostic
+	list  []Diagnostic
 	Color bool
 }
 
 // Reporter is a Bag bound to a specific file
 type Reporter struct {
-	bag *Bag
+	bag  *Bag
 	file *File
 }
 
@@ -92,7 +92,7 @@ func NewBag(color bool) *Bag {
 
 // Get reporter for the specified file
 func (bag *Bag) For(file *File) *Reporter {
-	return &Reporter{ bag, file }
+	return &Reporter{bag, file}
 }
 
 // Appends error to the Bag, has var args support
@@ -140,6 +140,6 @@ func (bag *Bag) Render(w io.Writer) {
 
 		// Print source code line and pointer to the columns affected
 		fmt.Fprintf(w, "  %s\n", diagnostic.File.LineText(line))
-		fmt.Fprintf(w, "  %s%s\n", strings.Repeat(" ", col-1), strings.Repeat("^", max(1, diagnostic.End - diagnostic.Start)))
+		fmt.Fprintf(w, "  %s%s\n", strings.Repeat(" ", col-1), strings.Repeat("^", max(1, diagnostic.End-diagnostic.Start)))
 	}
 }

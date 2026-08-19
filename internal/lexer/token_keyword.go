@@ -1,14 +1,14 @@
 package lexer
 
 var keywordMap = map[string]TokenType{
-	"func": KwFuncToken,
+	"func":   KwFuncToken,
 	"return": KwReturnToken,
-	"int": KwIntToken,
-	"bool": KwBoolToken,
+	"int":    KwIntToken,
+	"bool":   KwBoolToken,
 	"string": KwStringToken,
-	"float": KwFloatToken,
-	"true": KwTrueToken,
-	"false": KwFalseToken,
+	"float":  KwFloatToken,
+	"true":   KwTrueToken,
+	"false":  KwFalseToken,
 }
 
 func identifierIsKeyword(identifier string) bool {
