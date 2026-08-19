@@ -50,6 +50,16 @@ func (s *Scanner) AdvanceUntil(predicate func(byte) bool) []byte {
 	return s.bytes[start:s.cursor]
 }
 
+func (s *Scanner) AdvanceWhile(predicate func(byte) bool) []byte {
+	start := s.cursor
+
+	for !s.isEOF(s.cursor) && predicate(s.Peek()) {
+		s.cursor++
+	}
+
+	return s.bytes[start:s.cursor]
+}
+
 func (s *Scanner) PeekAhead(offset int) byte {
 	pos := s.cursor + offset
 
@@ -58,4 +68,8 @@ func (s *Scanner) PeekAhead(offset int) byte {
 	}
 
 	return s.bytes[pos]
+}
+
+func (s *Scanner) Revert() {
+	s.cursor--
 }
