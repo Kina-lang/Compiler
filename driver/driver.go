@@ -1,12 +1,14 @@
 package driver
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
+	"martinpetr.dev/kina/compiler/internal/lexer"
 	"martinpetr.dev/kina/compiler/projectConfig"
 )
 
@@ -117,7 +119,12 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 func parseFile(filePath string, src []byte, reporter *diagnostics.Reporter) (*parseFileResult, error) {
 	fmt.Printf("Parsing file %s...\n", filePath)
 
-	// TODO: Implement
+	json, err := json.Marshal(lexer.ProcessFile(filePath, src, reporter))
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Tokens: %s\n", string(json))
 
 	return &parseFileResult{
 		Imports: []string{},
