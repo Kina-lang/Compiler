@@ -33,6 +33,9 @@ const (
 	IntLiteralToken TokenType = "LITERAL_INT"
 	FloatLiteralToken TokenType = "LITERAL_FLOAT"
 	StringLiteralToken TokenType = "LITERAL_STRING"
+
+	NewlineToken TokenType = "NEWLINE"
+	EOFToken TokenType = "EOF"
 )
 
 type Span struct {

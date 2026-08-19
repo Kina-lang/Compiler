@@ -1,10 +1,16 @@
 package lexer
 
 import (
+	"encoding/json"
+
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
 )
 
-func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) []Token {
+type LexerResult struct {
+	Tokens []Token
+}
+
+func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) LexerResult {
 	scanner := NewScanner(path, src)
 	var tokens []Token
 
@@ -32,6 +38,9 @@ func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) []Toke
 			case isCharacterToken(current):
 				tokens = append(tokens, createCharacterToken(scanner, scanner.cursor-1, current))
 
+			case isLineBreak(current):
+				tokens = append(tokens, lexNewline(current, scanner))
+
 			case isWhitespace(current):
 				// Skip whitespace
 
@@ -54,7 +63,40 @@ func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) []Toke
 		}
 	}
 
-	return tokens
+	tokens = append(tokens, Token{
+		Kind: EOFToken,
+		Value: "EOF",
+		Span: Span{
+			Start: scanner.cursor,
+			End: scanner.cursor,
+		},
+	})
+
+	return LexerResult{
+		Tokens: tokens,
+	}
+}
+
+func (r *LexerResult) String() (string, error) {
+	json, err := json.MarshalIndent(r, "", "  ")
+	return string(json), err
+}
+
+func (r *LexerResult) RemoveNonEssential() LexerResult {
+	resultTokens := []Token{}
+
+	for _, token := range r.Tokens {
+		switch token.Kind {
+			case LineCommentToken, BlockCommentToken, NewlineToken:
+				// Skip newlines and comments
+			default:
+				resultTokens = append(resultTokens, token)
+		}
+	}
+
+	return LexerResult{
+		Tokens: resultTokens,
+	}
 }
 
 func isAlpha(b byte) bool {

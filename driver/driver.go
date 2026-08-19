@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -119,7 +118,11 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 func parseFile(filePath string, src []byte, reporter *diagnostics.Reporter) (*parseFileResult, error) {
 	fmt.Printf("Parsing file %s...\n", filePath)
 
-	json, err := json.Marshal(lexer.ProcessFile(filePath, src, reporter))
+	lexerResult := lexer.ProcessFile(filePath, src, reporter)
+	asiResult := lexerResult.InsertSemicolons()
+	essentialTokens := asiResult.RemoveNonEssential()
+
+	json, err := essentialTokens.String()
 	if err != nil {
 		return nil, err
 	}
