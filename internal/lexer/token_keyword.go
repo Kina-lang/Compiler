@@ -9,6 +9,9 @@ var keywordMap = map[string]TokenType{
 	"float":  KwFloatToken,
 	"true":   KwTrueToken,
 	"false":  KwFalseToken,
+	"void":   KwVoidToken,
+	"null":   KwNullToken,
+	"any":    KwAnyToken,
 }
 
 func identifierIsKeyword(identifier string) bool {

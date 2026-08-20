@@ -15,6 +15,9 @@ const (
 	KwBoolToken   TokenType = "KEYWORD_BOOL"
 	KwStringToken TokenType = "KEYWORD_STRING"
 	KwFloatToken  TokenType = "KEYWORD_FLOAT"
+	KwVoidToken   TokenType = "KEYWORD_VOID"
+	KwNullToken   TokenType = "KEYWORD_NULL"
+	KwAnyToken    TokenType = "KEYWORD_ANY"
 
 	KwTrueToken  TokenType = "KEYWORD_TRUE"
 	KwFalseToken TokenType = "KEYWORD_FALSE"

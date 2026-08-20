@@ -3,19 +3,19 @@ package treebuilder
 type NodeKind string
 
 const (
-	FileNodeKind                NodeKind = "FILE"
+	FileNodeKind NodeKind = "FILE"
 
 	FunctionDeclarationNodeKind NodeKind = "FUNCTION_DECLARATION"
 	FunctionParameterNodeKind   NodeKind = "FUNCTION_PARAMETER"
 
-	TypeAnnotationNodeKind      NodeKind = "TYPE_ANNOTATION"
+	TypeAnnotationNodeKind NodeKind = "TYPE_ANNOTATION"
 
-	BasicBlockNodeKind          NodeKind = "BASIC_BLOCK"
+	BasicBlockNodeKind NodeKind = "BASIC_BLOCK"
 
-	StatementNodeKind           NodeKind = "STATEMENT"
-	ReturnStatementNodeKind      NodeKind = "RETURN_STATEMENT"
+	StatementNodeKind       NodeKind = "STATEMENT"
+	ReturnStatementNodeKind NodeKind = "RETURN_STATEMENT"
 
-	ExpressionNodeKind          NodeKind = "EXPRESSION"
+	ExpressionNodeKind NodeKind = "EXPRESSION"
 )
 
 type Span struct {

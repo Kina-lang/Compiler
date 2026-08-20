@@ -8,6 +8,9 @@ var tokenTypesValidForTypeAnnotation = []lexer.TokenType{
 	lexer.KwFloatToken,
 	lexer.KwBoolToken,
 	lexer.KwStringToken,
+	lexer.KwVoidToken,
+	lexer.KwNullToken,
+	lexer.KwAnyToken,
 }
 
 // TODO: Add support for complex types (arrays, generics, function signatures, ...)
