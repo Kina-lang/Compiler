@@ -5,9 +5,11 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
 	"martinpetr.dev/kina/compiler/internal/lexer"
+	"martinpetr.dev/kina/compiler/internal/performance"
 	"martinpetr.dev/kina/compiler/internal/treebuilder"
 	"martinpetr.dev/kina/compiler/projectConfig"
 )
@@ -119,19 +121,34 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 func parseFile(filePath string, src []byte, reporter *diagnostics.Reporter) (*parseFileResult, error) {
 	fmt.Printf("Parsing file %s...\n", filePath)
 
+	startLexer := time.Now()
+	performance.ReportHeapSize("start")
+
 	// Lex the file
 	lexerResult := lexer.ProcessFile(filePath, src, reporter)
+	lexerTime := time.Since(startLexer)
+	performance.ReportHeapSize("lexer")
+
+	startAsi := time.Now()
+
 	asiResult := lexerResult.InsertSemicolons()
+	asiTime := time.Since(startAsi)
+	performance.ReportHeapSize("asi")
+
 	essentialTokens := asiResult.RemoveNonEssential()
 
+	startAst := time.Now()
 	tree := treebuilder.BuildTree(filePath, essentialTokens.Tokens, reporter)
+	astTime := time.Since(startAst)
+	performance.ReportHeapSize("ast")
 
-	json, err := tree.String()
+	_, err := tree.String()
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(string(json))
+	//fmt.Println(string(json))
+	fmt.Printf("Lexer: %s, ASI: %s, AST: %s\n", lexerTime, asiTime, astTime)
 
 	return &parseFileResult{
 		Imports: []string{},

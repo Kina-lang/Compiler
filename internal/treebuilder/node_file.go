@@ -3,10 +3,11 @@ package treebuilder
 import (
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
 	"martinpetr.dev/kina/compiler/internal/lexer"
+	"martinpetr.dev/kina/compiler/internal/performance"
 )
 
 func parseFile(scanner *Scanner) fileNode {
-	var children []Node = make([]Node, 0)
+	var children = performance.NewFastArray[Node](32)
 	start := 0
 
 	for !scanner.IsAtEOF() {
@@ -16,20 +17,20 @@ func parseFile(scanner *Scanner) fileNode {
 			continue
 		}
 
-		children = append(children, node)
+		children.Append(node)
 	}
 
-	if len(children) == 0 {
+	if children.Len() == 0 {
 		return NewFileNode(Span{
 			Start: start,
 			End:   start,
-		}, children)
+		}, children.Items())
 	}
 
 	return NewFileNode(Span{
 		Start: start,
-		End:   children[len(children)-1].Base().Span.End,
-	}, children)
+		End:   children.Last().Base().Span.End,
+	}, children.Items())
 }
 
 func parseToplevelNode(scanner *Scanner) (Node, bool) {

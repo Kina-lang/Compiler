@@ -2,10 +2,11 @@ package treebuilder
 
 import (
 	"martinpetr.dev/kina/compiler/internal/lexer"
+	"martinpetr.dev/kina/compiler/internal/performance"
 )
 
 func ParseBasicBlock(scanner *Scanner) (basicBlockNode, bool) {
-	var statements []StatementNode = make([]StatementNode, 0)
+	var statements = performance.NewFastArray[StatementNode](8)
 
 	// If the next token is a closing brace, we have an empty block
 	if scanner.Peek().Kind == lexer.BraceCloseToken {
@@ -13,7 +14,7 @@ func ParseBasicBlock(scanner *Scanner) (basicBlockNode, bool) {
 		return NewBasicBlockNode(Span{
 			Start: scanner.Peek().Span.Start,
 			End:   scanner.Peek().Span.End,
-		}, statements), true
+		}, statements.Items()), true
 	}
 
 	for !scanner.IsAtEOF() {
@@ -22,7 +23,7 @@ func ParseBasicBlock(scanner *Scanner) (basicBlockNode, bool) {
 			return basicBlockNode{}, false
 		}
 
-		statements = append(statements, statement)
+		statements.Append(statement)
 
 		// If the next token is a closing brace, we have reached the end of the block
 		if scanner.Peek().Kind == lexer.BraceCloseToken {
@@ -32,7 +33,7 @@ func ParseBasicBlock(scanner *Scanner) (basicBlockNode, bool) {
 	}
 
 	return NewBasicBlockNode(Span{
-		Start: statements[0].Base().Span.Start,
-		End:   statements[len(statements)-1].Base().Span.End,
-	}, statements), true
+		Start: statements.First().Base().Span.Start,
+		End:   statements.Last().Base().Span.End,
+	}, statements.Items()), true
 }

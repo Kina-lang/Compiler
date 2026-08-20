@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
+	"martinpetr.dev/kina/compiler/internal/performance"
 )
 
 type LexerResult struct {
@@ -12,7 +13,7 @@ type LexerResult struct {
 
 func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) LexerResult {
 	scanner := NewScanner(path, src)
-	var tokens []Token
+	var tokens = performance.NewFastArray[Token](len(src) / 2)
 
 	for !scanner.IsAtEOF() {
 		current := scanner.Advance()
@@ -21,25 +22,25 @@ func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) LexerR
 		case isDigit(current):
 			start := scanner.cursor - 1
 			number := lexNumberValue(current, scanner)
-			tokens = append(tokens, createNumberToken(scanner, start, number))
+			tokens.Append(createNumberToken(scanner, start, number))
 
 		case isValidIdentifierStartChar(current):
 			start := scanner.cursor - 1
 			identifier := lexIdentifierValue(current, scanner)
 
 			if identifierIsKeyword(identifier) {
-				tokens = append(tokens, createKeywordToken(scanner, start, identifier))
+				tokens.Append(createKeywordToken(scanner, start, identifier))
 			} else {
-				tokens = append(tokens, createIdentifierToken(scanner, start, identifier))
+				tokens.Append(createIdentifierToken(scanner, start, identifier))
 			}
 
 		// This case needs to be after any other case lexing anything that can start with a character
 		// parsed by this case.
 		case isCharacterToken(current):
-			tokens = append(tokens, createCharacterToken(scanner, scanner.cursor-1, current))
+			tokens.Append(createCharacterToken(scanner, scanner.cursor-1, current))
 
 		case isLineBreak(current):
-			tokens = append(tokens, lexNewline(current, scanner))
+			tokens.Append(lexNewline(current, scanner))
 
 		case isWhitespace(current):
 			// Skip whitespace
@@ -49,12 +50,12 @@ func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) LexerR
 			case '/':
 				next := scanner.Peek()
 				if next == '/' || next == '*' {
-					tokens = append(tokens, lexComment(current, scanner))
+					tokens.Append(lexComment(current, scanner))
 					break
 				}
 
 			case '"', '\'':
-				tokens = append(tokens, lexStringLiteral(current, scanner))
+				tokens.Append(lexStringLiteral(current, scanner))
 
 			default:
 				reporter.Errorf(scanner.cursor-1, scanner.cursor, diagnostics.InvalidTokenDiagnosticCode, "Unexpected character: '%c'", current)
@@ -63,7 +64,7 @@ func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) LexerR
 		}
 	}
 
-	tokens = append(tokens, Token{
+	tokens.Append(Token{
 		Kind:  EOFToken,
 		Value: "EOF",
 		Span: Span{
@@ -73,7 +74,7 @@ func ProcessFile(path string, src []byte, reporter *diagnostics.Reporter) LexerR
 	})
 
 	return LexerResult{
-		Tokens: tokens,
+		Tokens: tokens.Items(),
 	}
 }
 

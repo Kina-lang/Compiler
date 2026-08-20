@@ -1,10 +1,12 @@
 package lexer
 
+import "martinpetr.dev/kina/compiler/internal/performance"
+
 func (r *LexerResult) InsertSemicolons() LexerResult {
-	resultTokens := []Token{}
+	resultTokens := performance.NewFastArray[Token](len(r.Tokens))
 
 	for i, token := range r.Tokens {
-		resultTokens = append(resultTokens, token)
+		resultTokens.Append(token)
 
 		switch token.Kind {
 		case KwReturnToken:
@@ -17,7 +19,7 @@ func (r *LexerResult) InsertSemicolons() LexerResult {
 			nextToken := r.Tokens[i+1]
 
 			if nextToken.Kind == NewlineToken {
-				resultTokens = append(resultTokens, Token{
+				resultTokens.Append(Token{
 					Kind:  SemicolonToken,
 					Value: ";",
 					Span: Span{
@@ -30,6 +32,6 @@ func (r *LexerResult) InsertSemicolons() LexerResult {
 	}
 
 	return LexerResult{
-		Tokens: resultTokens,
+		Tokens: resultTokens.Items(),
 	}
 }

@@ -2,6 +2,7 @@ package treebuilder
 
 import (
 	"martinpetr.dev/kina/compiler/internal/lexer"
+	"martinpetr.dev/kina/compiler/internal/performance"
 )
 
 func ParseFunctionDeclaration(scanner *Scanner) (functionDeclarationNode, bool) {
@@ -62,7 +63,7 @@ func ParseFunctionDeclaration(scanner *Scanner) (functionDeclarationNode, bool) 
 }
 
 func ParseFunctionParameters(scanner *Scanner) ([]functionParameterNode, bool) {
-	var parameters []functionParameterNode = make([]functionParameterNode, 0)
+	var parameters = performance.NewFastArray[functionParameterNode](2)
 
 	for !scanner.IsAtEOF() {
 		currentToken := scanner.Peek()
@@ -94,7 +95,7 @@ func ParseFunctionParameters(scanner *Scanner) ([]functionParameterNode, bool) {
 			end = maybeCommaToken.Span.End
 		}
 
-		parameters = append(parameters, NewFunctionParameterNode(Span{
+		parameters.Append(NewFunctionParameterNode(Span{
 			Start: paramNameToken.Span.Start,
 			End:   end,
 		}, paramNameToken.Value, paramTypeNode))
@@ -104,5 +105,5 @@ func ParseFunctionParameters(scanner *Scanner) ([]functionParameterNode, bool) {
 		}
 	}
 
-	return parameters, true
+	return parameters.Items(), true
 }
