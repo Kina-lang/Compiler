@@ -8,6 +8,7 @@ import (
 
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
 	"martinpetr.dev/kina/compiler/internal/lexer"
+	treebuilder "martinpetr.dev/kina/compiler/internal/tree_builder"
 	"martinpetr.dev/kina/compiler/projectConfig"
 )
 
@@ -118,16 +119,19 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 func parseFile(filePath string, src []byte, reporter *diagnostics.Reporter) (*parseFileResult, error) {
 	fmt.Printf("Parsing file %s...\n", filePath)
 
+	// Lex the file
 	lexerResult := lexer.ProcessFile(filePath, src, reporter)
 	asiResult := lexerResult.InsertSemicolons()
 	essentialTokens := asiResult.RemoveNonEssential()
 
-	json, err := essentialTokens.String()
+	tree := treebuilder.BuildTree(filePath, essentialTokens.Tokens, reporter)
+
+	json, err := tree.String()
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("Tokens: %s\n", string(json))
+	fmt.Println(string(json))
 
 	return &parseFileResult{
 		Imports: []string{},
