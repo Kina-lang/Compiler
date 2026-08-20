@@ -8,7 +8,7 @@ import (
 
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
 	"martinpetr.dev/kina/compiler/internal/lexer"
-	treebuilder "martinpetr.dev/kina/compiler/internal/tree_builder"
+	"martinpetr.dev/kina/compiler/internal/treebuilder"
 	"martinpetr.dev/kina/compiler/projectConfig"
 )
 

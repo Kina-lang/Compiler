@@ -15,7 +15,8 @@ const (
 	StatementNodeKind       NodeKind = "STATEMENT"
 	ReturnStatementNodeKind NodeKind = "RETURN_STATEMENT"
 
-	ExpressionNodeKind NodeKind = "EXPRESSION"
+	ExpressionNodeKind        NodeKind = "EXPRESSION"
+	LiteralExpressionNodeKind NodeKind = "LITERAL_EXPRESSION"
 )
 
 type Span struct {
@@ -147,3 +148,22 @@ type expressionNode struct {
 type ExpressionNode interface{ Base() expressionNode }
 
 func (n expressionNode) Base() expressionNode { return n }
+
+type literalExpressionNode struct {
+	expressionNode
+	LiteralType LiteralType `json:"literalType"`
+	Value       string      `json:"value"`
+}
+
+func NewLiteralExpressionNode(span Span, literalType LiteralType, value string) literalExpressionNode {
+	return literalExpressionNode{
+		expressionNode: expressionNode{
+			baseNode: baseNode{
+				Kind: LiteralExpressionNodeKind,
+				Span: span,
+			},
+		},
+		LiteralType: literalType,
+		Value:       value,
+	}
+}
