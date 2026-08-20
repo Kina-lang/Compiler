@@ -105,3 +105,13 @@ func (s *Scanner) Advance() lexer.Token {
 
 	return token
 }
+
+func (s *Scanner) Match(expectedKind lexer.TokenType) (lexer.Token, bool) {
+	token := s.Peek()
+	if token.Kind == expectedKind {
+		s.cursor++
+		return token, true
+	}
+
+	return token, false
+}

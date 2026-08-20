@@ -4,10 +4,18 @@ type NodeKind string
 
 const (
 	FileNodeKind                NodeKind = "FILE"
+
 	FunctionDeclarationNodeKind NodeKind = "FUNCTION_DECLARATION"
 	FunctionParameterNodeKind   NodeKind = "FUNCTION_PARAMETER"
+
 	TypeAnnotationNodeKind      NodeKind = "TYPE_ANNOTATION"
+
 	BasicBlockNodeKind          NodeKind = "BASIC_BLOCK"
+
+	StatementNodeKind           NodeKind = "STATEMENT"
+	ReturnStatementNodeKind      NodeKind = "RETURN_STATEMENT"
+
+	ExpressionNodeKind          NodeKind = "EXPRESSION"
 )
 
 type Span struct {
@@ -94,10 +102,10 @@ func NewTypeAnnotationNode(span Span, typeName string) typeAnnotationNode {
 
 type basicBlockNode struct {
 	baseNode
-	Statements []Node `json:"statements"`
+	Statements []StatementNode `json:"statements"`
 }
 
-func NewBasicBlockNode(span Span, statements []Node) basicBlockNode {
+func NewBasicBlockNode(span Span, statements []StatementNode) basicBlockNode {
 	return basicBlockNode{
 		baseNode: baseNode{
 			Kind: BasicBlockNodeKind,
@@ -106,3 +114,36 @@ func NewBasicBlockNode(span Span, statements []Node) basicBlockNode {
 		Statements: statements,
 	}
 }
+
+type statementNode struct {
+	baseNode
+}
+
+type StatementNode interface{ Base() statementNode }
+
+func (n statementNode) Base() statementNode { return n }
+
+type returnStatementNode struct {
+	statementNode
+	Expression ExpressionNode `json:"expression"`
+}
+
+func NewReturnStatementNode(span Span, expression ExpressionNode) returnStatementNode {
+	return returnStatementNode{
+		statementNode: statementNode{
+			baseNode: baseNode{
+				Kind: ReturnStatementNodeKind,
+				Span: span,
+			},
+		},
+		Expression: expression,
+	}
+}
+
+type expressionNode struct {
+	baseNode
+}
+
+type ExpressionNode interface{ Base() expressionNode }
+
+func (n expressionNode) Base() expressionNode { return n }
