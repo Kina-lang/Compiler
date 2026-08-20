@@ -16,15 +16,18 @@ import (
 
 type Options struct {
 	Out string
+	EmitTokens bool
+	EmitTree bool
 }
 
 type parseProjectFilesResult struct{}
 
 type parseFileResult struct {
 	Imports []string
+	Tree treebuilder.Tree
 }
 
-func Compile(projectPath string, opt Options) error {
+func Compile(projectPath string, opts Options) error {
 	// Resolve and parse kina.toml project config file
 	configPath := path.Join(projectPath, "kina.toml")
 	config, err := projectConfig.ParseFile(configPath)
@@ -49,7 +52,7 @@ func Compile(projectPath string, opt Options) error {
 
 	// Parse (lex + ast) all project files
 	// Resolved imports are also parsed recursively (results cached)
-	_, err = parseProjectFiles(projectPath, absEntrypointPath, diagnosticsBag)
+	_, err = parseProjectFiles(projectPath, absEntrypointPath, diagnosticsBag, opts)
 	if err != nil {
 		return err
 	}
@@ -65,7 +68,7 @@ func Compile(projectPath string, opt Options) error {
 
 // Parses (lex + ast) all project files starting from the entrypoint file
 // Resolved imports are also parsed recursively (results cached)
-func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnosticsBag *diagnostics.Bag) (*parseProjectFilesResult, error) {
+func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnosticsBag *diagnostics.Bag, opts Options) (*parseProjectFilesResult, error) {
 	var pathsToParse []string = []string{absEntrypointPath}                             // List of files to parse (entrypoint + imports)
 	var parsedFileResults map[string]parseFileResult = make(map[string]parseFileResult) // Cache of parsed file results (key is abs file path)
 
@@ -94,7 +97,7 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 		)
 
 		// Parse the first file in the list
-		res, err := parseFile(pathsToParse[0], src, diagnosticsBag.For(diagnosticFile))
+		res, err := parseFile(projectRootPath, pathsToParse[0], src, diagnosticsBag.For(diagnosticFile), opts)
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +121,7 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 }
 
 // Parses (lex + ast) a single file and returns the result
-func parseFile(filePath string, src []byte, reporter *diagnostics.Reporter) (*parseFileResult, error) {
+func parseFile(projectRootPath string, filePath string, src []byte, reporter *diagnostics.Reporter, opts Options) (*parseFileResult, error) {
 	fmt.Printf("Parsing file %s...\n", filePath)
 
 	startLexer := time.Now()
@@ -137,20 +140,48 @@ func parseFile(filePath string, src []byte, reporter *diagnostics.Reporter) (*pa
 
 	essentialTokens := asiResult.RemoveNonEssential()
 
+	EmitDebugArtifact(opts.EmitTokens, "tokens", essentialTokens.String, projectRootPath, opts.Out, filePath)
+
 	startAst := time.Now()
 	tree := treebuilder.BuildTree(filePath, essentialTokens.Tokens, reporter)
 	astTime := time.Since(startAst)
 	performance.ReportHeapSize("ast")
 
-	_, err := tree.String()
-	if err != nil {
-		return nil, err
-	}
+	EmitDebugArtifact(opts.EmitTree, "tree", tree.String, projectRootPath, opts.Out, filePath)
 
-	//fmt.Println(string(json))
 	fmt.Printf("Lexer: %s, ASI: %s, AST: %s\n", lexerTime, asiTime, astTime)
 
 	return &parseFileResult{
 		Imports: []string{},
+		Tree: tree,
 	}, nil
+}
+
+func EmitDebugArtifact(emitFlagValue bool, typeName string, dataDumpFunc func() (string, error), projectRootPath string, outRootPath string, compiledFilePath string) error {
+	if !emitFlagValue {
+		return nil
+	}
+
+	filePathRelativeToProjectRoot, err := filepath.Rel(projectRootPath, compiledFilePath)
+	if err != nil {
+		return err
+	}
+
+	fullArtifactPath := path.Join(outRootPath, "debug", typeName, filePathRelativeToProjectRoot + ".json")
+	fileParentDir := path.Dir(fullArtifactPath)
+
+	if err := os.MkdirAll(fileParentDir, os.ModePerm); err != nil {
+		return err
+	}
+
+	data, err := dataDumpFunc()
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(fullArtifactPath, []byte(data), 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
