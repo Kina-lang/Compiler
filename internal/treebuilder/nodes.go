@@ -8,6 +8,9 @@ const (
 	FunctionDeclarationNodeKind NodeKind = "FUNCTION_DECLARATION"
 	FunctionParameterNodeKind   NodeKind = "FUNCTION_PARAMETER"
 
+	ImportNode NodeKind = "IMPORT"
+	ImportMember NodeKind = "IMPORT_MEMBER"
+
 	TypeAnnotationNodeKind NodeKind = "TYPE_ANNOTATION"
 
 	BasicBlockNodeKind NodeKind = "BASIC_BLOCK"
@@ -113,6 +116,40 @@ func NewBasicBlockNode(span Span, statements []StatementNode) basicBlockNode {
 			Span: span,
 		},
 		Statements: statements,
+	}
+}
+
+type importNode struct {
+	baseNode
+	ModuleName string `json:"moduleName"`
+	Members   []importMemberNode `json:"members"`
+}
+
+func NewImportNode(span Span, moduleName string, members []importMemberNode) importNode {
+	return importNode{
+		baseNode: baseNode{
+			Kind: ImportNode,
+			Span: span,
+		},
+		ModuleName: moduleName,
+		Members:    members,
+	}
+}
+
+type importMemberNode struct {
+	baseNode
+	Name string `json:"name"`
+	Alias string `json:"alias"`
+}
+
+func NewImportMemberNode(span Span, name string, alias string) importMemberNode {
+	return importMemberNode{
+		baseNode: baseNode{
+			Kind: ImportMember,
+			Span: span,
+		},
+		Name:  name,
+		Alias: alias,
 	}
 }
 

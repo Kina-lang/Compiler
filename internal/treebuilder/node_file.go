@@ -40,6 +40,9 @@ func parseToplevelNode(scanner *Scanner) (Node, bool) {
 	case lexer.KwFuncToken:
 		res, ok := ParseFunctionDeclaration(scanner)
 		return res, ok
+	case lexer.KwImportToken:
+		res, ok := ParseImport(scanner)
+		return res, ok
 	default:
 		scanner.reporter.Errorf(token.Span.Start, token.Span.End, diagnostics.InvalidSyntaxDiagnosticCode, "Invalid token of type '%s' in top-level scope", token.Kind)
 		return baseNode{}, false
