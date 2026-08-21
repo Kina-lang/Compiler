@@ -12,6 +12,7 @@ const (
 	KwReturnToken TokenType = "KEYWORD_RETURN"
 	KwImportToken TokenType = "KEYWORD_IMPORT"
 	KwFromToken   TokenType = "KEYWORD_FROM"
+	KwAsToken     TokenType = "KEYWORD_AS"
 
 	KwIntToken    TokenType = "KEYWORD_INT"
 	KwBoolToken   TokenType = "KEYWORD_BOOL"

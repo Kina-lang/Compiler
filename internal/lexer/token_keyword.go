@@ -5,6 +5,7 @@ var keywordMap = map[string]TokenType{
 	"return": KwReturnToken,
 	"import": KwImportToken,
 	"from":   KwFromToken,
+	"as":     KwAsToken,
 	"int":    KwIntToken,
 	"bool":   KwBoolToken,
 	"string": KwStringToken,
