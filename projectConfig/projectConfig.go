@@ -40,5 +40,10 @@ func ParseFile(path string) (*ProjectConfig, error) {
 		return nil, err
 	}
 
+	err = Validate(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &config, nil
 }
