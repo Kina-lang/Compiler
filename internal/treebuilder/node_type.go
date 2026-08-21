@@ -14,10 +14,10 @@ var tokenTypesValidForTypeAnnotation = []lexer.TokenType{
 }
 
 // TODO: Add support for complex types (arrays, generics, function signatures, ...)
-func ParseTypeAnnotation(scanner *Scanner) (typeAnnotationNode, bool) {
+func ParseTypeAnnotation(scanner *Scanner) (TypeAnnotationNode, bool) {
 	typeToken, ok := scanner.ExpectAny(tokenTypesValidForTypeAnnotation...)
 	if !ok {
-		return typeAnnotationNode{}, false
+		return TypeAnnotationNode{}, false
 	}
 
 	return NewTypeAnnotationNode(Span{

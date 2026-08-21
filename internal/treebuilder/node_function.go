@@ -5,55 +5,55 @@ import (
 	"martinpetr.dev/kina/compiler/internal/performance"
 )
 
-func ParseFunctionDeclaration(scanner *Scanner) (functionDeclarationNode, bool) {
+func ParseFunctionDeclaration(scanner *Scanner) (FunctionDeclarationNode, bool) {
 	funcKw, ok := scanner.Expect(lexer.KwFuncToken)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	nameIdentifier, ok := scanner.Expect(lexer.IdentifierToken)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	_, ok = scanner.Expect(lexer.ParenOpenToken)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	functionParameters, ok := ParseFunctionParameters(scanner)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	_, ok = scanner.Expect(lexer.ParenCloseToken)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	_, ok = scanner.Expect(lexer.ColonToken)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	returnTypeNode, ok := ParseTypeAnnotation(scanner)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	_, ok = scanner.Expect(lexer.BraceOpenToken)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	functionBody, ok := ParseBasicBlock(scanner)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	closeBraceToken, ok := scanner.Expect(lexer.BraceCloseToken)
 	if !ok {
-		return functionDeclarationNode{}, false
+		return FunctionDeclarationNode{}, false
 	}
 
 	return NewFunctionDeclarationNode(Span{
@@ -62,8 +62,8 @@ func ParseFunctionDeclaration(scanner *Scanner) (functionDeclarationNode, bool) 
 	}, nameIdentifier.Value, functionParameters, returnTypeNode, functionBody), true
 }
 
-func ParseFunctionParameters(scanner *Scanner) ([]functionParameterNode, bool) {
-	var parameters = performance.NewFastArray[functionParameterNode](2)
+func ParseFunctionParameters(scanner *Scanner) ([]FunctionParameterNode, bool) {
+	var parameters = performance.NewFastArray[FunctionParameterNode](2)
 
 	for !scanner.IsAtEOF() {
 		currentToken := scanner.Peek()

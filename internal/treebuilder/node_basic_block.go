@@ -5,7 +5,7 @@ import (
 	"martinpetr.dev/kina/compiler/internal/performance"
 )
 
-func ParseBasicBlock(scanner *Scanner) (basicBlockNode, bool) {
+func ParseBasicBlock(scanner *Scanner) (BasicBlockNode, bool) {
 	var statements = performance.NewFastArray[StatementNode](8)
 
 	// If the next token is a closing brace, we have an empty block
@@ -20,7 +20,7 @@ func ParseBasicBlock(scanner *Scanner) (basicBlockNode, bool) {
 	for !scanner.IsAtEOF() {
 		statement, ok := ParseStatement(scanner)
 		if !ok {
-			return basicBlockNode{}, false
+			return BasicBlockNode{}, false
 		}
 
 		statements.Append(statement)

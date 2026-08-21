@@ -18,10 +18,10 @@ func ParseStatement(scanner *Scanner) (StatementNode, bool) {
 	}
 }
 
-func ParseReturnStatement(scanner *Scanner) (returnStatementNode, bool) {
+func ParseReturnStatement(scanner *Scanner) (ReturnStatementNode, bool) {
 	returnStatement, ok := scanner.Expect(lexer.KwReturnToken)
 	if !ok {
-		return returnStatementNode{}, false
+		return ReturnStatementNode{}, false
 	}
 
 	if scanner.Peek().Kind == lexer.SemicolonToken {
@@ -34,7 +34,7 @@ func ParseReturnStatement(scanner *Scanner) (returnStatementNode, bool) {
 
 	expression, ok := ParseExpression(scanner)
 	if !ok {
-		return returnStatementNode{}, false
+		return ReturnStatementNode{}, false
 	}
 
 	scanner.Match(lexer.SemicolonToken) // Optional semicolon

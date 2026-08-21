@@ -8,7 +8,7 @@ import (
 )
 
 type Tree struct {
-	Node fileNode
+	Node FileNode
 }
 
 func BuildTree(filePath string, tokens []lexer.Token, reporter *diagnostics.Reporter) Tree {

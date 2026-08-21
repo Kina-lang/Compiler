@@ -19,7 +19,7 @@ const (
 func ParseLiteralExpression(scanner *Scanner) (ExpressionNode, bool) {
 	token, ok := scanner.ExpectAny(LiteralTokenTypes...)
 	if !ok {
-		return expressionNode{}, false
+		return BaseExpressionNode{}, false
 	}
 
 	var literalType LiteralType
@@ -38,7 +38,7 @@ func ParseLiteralExpression(scanner *Scanner) (ExpressionNode, bool) {
 		literalType = LiteralTypeVoid
 	default:
 		scanner.reporter.Errorf(token.Span.Start, token.Span.End, diagnostics.InvalidSyntaxDiagnosticCode, "Invalid literal token of type '%s'", token.Kind)
-		return expressionNode{}, false
+		return BaseExpressionNode{}, false
 	}
 
 	return NewLiteralExpressionNode(Span{

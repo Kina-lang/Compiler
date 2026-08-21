@@ -8,8 +8,8 @@ const (
 	FunctionDeclarationNodeKind NodeKind = "FUNCTION_DECLARATION"
 	FunctionParameterNodeKind   NodeKind = "FUNCTION_PARAMETER"
 
-	ImportNode NodeKind = "IMPORT"
-	ImportMember NodeKind = "IMPORT_MEMBER"
+	ImportNodeKind NodeKind = "IMPORT"
+	ImportMemberNodeKind NodeKind = "IMPORT_MEMBER"
 
 	TypeAnnotationNodeKind NodeKind = "TYPE_ANNOTATION"
 
@@ -27,23 +27,23 @@ type Span struct {
 	End   int
 }
 
-type baseNode struct {
+type BaseNode struct {
 	Kind NodeKind `json:"kind"`
 	Span Span     `json:"span"`
 }
 
-type Node interface{ Base() baseNode }
+type Node interface{ Base() BaseNode }
 
-func (n baseNode) Base() baseNode { return n }
+func (n BaseNode) Base() BaseNode { return n }
 
-type fileNode struct {
-	baseNode
+type FileNode struct {
+	BaseNode
 	Children []Node `json:"children"`
 }
 
-func NewFileNode(span Span, children []Node) fileNode {
-	return fileNode{
-		baseNode: baseNode{
+func NewFileNode(span Span, children []Node) FileNode {
+	return FileNode{
+		BaseNode: BaseNode{
 			Kind: FileNodeKind,
 			Span: span,
 		},
@@ -51,17 +51,17 @@ func NewFileNode(span Span, children []Node) fileNode {
 	}
 }
 
-type functionDeclarationNode struct {
-	baseNode
+type FunctionDeclarationNode struct {
+	BaseNode
 	Name       string                  `json:"name"`
-	Parameters []functionParameterNode `json:"parameters"`
-	ReturnType typeAnnotationNode      `json:"returnType"`
-	Body       basicBlockNode          `json:"body"`
+	Parameters []FunctionParameterNode `json:"parameters"`
+	ReturnType TypeAnnotationNode      `json:"returnType"`
+	Body       BasicBlockNode          `json:"body"`
 }
 
-func NewFunctionDeclarationNode(span Span, name string, parameters []functionParameterNode, returnType typeAnnotationNode, body basicBlockNode) functionDeclarationNode {
-	return functionDeclarationNode{
-		baseNode: baseNode{
+func NewFunctionDeclarationNode(span Span, name string, parameters []FunctionParameterNode, returnType TypeAnnotationNode, body BasicBlockNode) FunctionDeclarationNode {
+	return FunctionDeclarationNode{
+		BaseNode: BaseNode{
 			Kind: FunctionDeclarationNodeKind,
 			Span: span,
 		},
@@ -72,15 +72,15 @@ func NewFunctionDeclarationNode(span Span, name string, parameters []functionPar
 	}
 }
 
-type functionParameterNode struct {
-	baseNode
+type FunctionParameterNode struct {
+	BaseNode
 	Name string             `json:"name"`
-	Type typeAnnotationNode `json:"type"`
+	Type TypeAnnotationNode `json:"type"`
 }
 
-func NewFunctionParameterNode(span Span, name string, typeAnnotation typeAnnotationNode) functionParameterNode {
-	return functionParameterNode{
-		baseNode: baseNode{
+func NewFunctionParameterNode(span Span, name string, typeAnnotation TypeAnnotationNode) FunctionParameterNode {
+	return FunctionParameterNode{
+		BaseNode: BaseNode{
 			Kind: FunctionParameterNodeKind,
 			Span: span,
 		},
@@ -89,14 +89,14 @@ func NewFunctionParameterNode(span Span, name string, typeAnnotation typeAnnotat
 	}
 }
 
-type typeAnnotationNode struct {
-	baseNode
+type TypeAnnotationNode struct {
+	BaseNode
 	TypeName string `json:"typeName"`
 }
 
-func NewTypeAnnotationNode(span Span, typeName string) typeAnnotationNode {
-	return typeAnnotationNode{
-		baseNode: baseNode{
+func NewTypeAnnotationNode(span Span, typeName string) TypeAnnotationNode {
+	return TypeAnnotationNode{
+		BaseNode: BaseNode{
 			Kind: TypeAnnotationNodeKind,
 			Span: span,
 		},
@@ -104,14 +104,14 @@ func NewTypeAnnotationNode(span Span, typeName string) typeAnnotationNode {
 	}
 }
 
-type basicBlockNode struct {
-	baseNode
+type BasicBlockNode struct {
+	BaseNode
 	Statements []StatementNode `json:"statements"`
 }
 
-func NewBasicBlockNode(span Span, statements []StatementNode) basicBlockNode {
-	return basicBlockNode{
-		baseNode: baseNode{
+func NewBasicBlockNode(span Span, statements []StatementNode) BasicBlockNode {
+	return BasicBlockNode{
+		BaseNode: BaseNode{
 			Kind: BasicBlockNodeKind,
 			Span: span,
 		},
@@ -119,16 +119,16 @@ func NewBasicBlockNode(span Span, statements []StatementNode) basicBlockNode {
 	}
 }
 
-type importNode struct {
-	baseNode
+type ImportNode struct {
+	BaseNode
 	ModuleName string `json:"moduleName"`
-	Members   []importMemberNode `json:"members"`
+	Members   []ImportMemberNode `json:"members"`
 }
 
-func NewImportNode(span Span, moduleName string, members []importMemberNode) importNode {
-	return importNode{
-		baseNode: baseNode{
-			Kind: ImportNode,
+func NewImportNode(span Span, moduleName string, members []ImportMemberNode) ImportNode {
+	return ImportNode{
+		BaseNode: BaseNode{
+			Kind: ImportNodeKind,
 			Span: span,
 		},
 		ModuleName: moduleName,
@@ -136,16 +136,16 @@ func NewImportNode(span Span, moduleName string, members []importMemberNode) imp
 	}
 }
 
-type importMemberNode struct {
-	baseNode
+type ImportMemberNode struct {
+	BaseNode
 	Name string `json:"name"`
 	Alias string `json:"alias"`
 }
 
-func NewImportMemberNode(span Span, name string, alias string) importMemberNode {
-	return importMemberNode{
-		baseNode: baseNode{
-			Kind: ImportMember,
+func NewImportMemberNode(span Span, name string, alias string) ImportMemberNode {
+	return ImportMemberNode{
+		BaseNode: BaseNode{
+			Kind: ImportMemberNodeKind,
 			Span: span,
 		},
 		Name:  name,
@@ -153,23 +153,23 @@ func NewImportMemberNode(span Span, name string, alias string) importMemberNode 
 	}
 }
 
-type statementNode struct {
-	baseNode
+type BaseStatementNode struct {
+	BaseNode
 }
 
-type StatementNode interface{ Base() statementNode }
+type StatementNode interface{ Base() BaseStatementNode }
 
-func (n statementNode) Base() statementNode { return n }
+func (n BaseStatementNode) Base() BaseStatementNode { return n }
 
-type returnStatementNode struct {
-	statementNode
+type ReturnStatementNode struct {
+	BaseStatementNode
 	Expression ExpressionNode `json:"expression"`
 }
 
-func NewReturnStatementNode(span Span, expression ExpressionNode) returnStatementNode {
-	return returnStatementNode{
-		statementNode: statementNode{
-			baseNode: baseNode{
+func NewReturnStatementNode(span Span, expression ExpressionNode) ReturnStatementNode {
+	return ReturnStatementNode{
+		BaseStatementNode: BaseStatementNode{
+			BaseNode: BaseNode{
 				Kind: ReturnStatementNodeKind,
 				Span: span,
 			},
@@ -178,24 +178,24 @@ func NewReturnStatementNode(span Span, expression ExpressionNode) returnStatemen
 	}
 }
 
-type expressionNode struct {
-	baseNode
+type BaseExpressionNode struct {
+	BaseNode
 }
 
-type ExpressionNode interface{ Base() expressionNode }
+type ExpressionNode interface{ Base() BaseExpressionNode }
 
-func (n expressionNode) Base() expressionNode { return n }
+func (n BaseExpressionNode) Base() BaseExpressionNode { return n }
 
-type literalExpressionNode struct {
-	expressionNode
+type LiteralExpressionNode struct {
+	BaseExpressionNode
 	LiteralType LiteralType `json:"literalType"`
 	Value       string      `json:"value"`
 }
 
-func NewLiteralExpressionNode(span Span, literalType LiteralType, value string) literalExpressionNode {
-	return literalExpressionNode{
-		expressionNode: expressionNode{
-			baseNode: baseNode{
+func NewLiteralExpressionNode(span Span, literalType LiteralType, value string) LiteralExpressionNode {
+	return LiteralExpressionNode{
+		BaseExpressionNode: BaseExpressionNode{
+			BaseNode: BaseNode{
 				Kind: LiteralExpressionNodeKind,
 				Span: span,
 			},

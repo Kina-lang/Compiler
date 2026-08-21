@@ -6,7 +6,7 @@ import (
 	"martinpetr.dev/kina/compiler/internal/performance"
 )
 
-func parseFile(scanner *Scanner) fileNode {
+func parseFile(scanner *Scanner) FileNode {
 	var children = performance.NewFastArray[Node](32)
 	start := 0
 
@@ -45,6 +45,6 @@ func parseToplevelNode(scanner *Scanner) (Node, bool) {
 		return res, ok
 	default:
 		scanner.reporter.Errorf(token.Span.Start, token.Span.End, diagnostics.InvalidSyntaxDiagnosticCode, "Invalid token of type '%s' in top-level scope", token.Kind)
-		return baseNode{}, false
+		return BaseNode{}, false
 	}
 }

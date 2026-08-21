@@ -5,35 +5,35 @@ import (
 	"martinpetr.dev/kina/compiler/internal/performance"
 )
 
-func ParseImport(scanner *Scanner) (importNode, bool) {
+func ParseImport(scanner *Scanner) (ImportNode, bool) {
 	importKw, ok := scanner.Expect(lexer.KwImportToken)
 	if !ok {
-		return importNode{}, false
+		return ImportNode{}, false
 	}
 
 	_, ok = scanner.Expect(lexer.BraceOpenToken)
 	if !ok {
-		return importNode{}, false
+		return ImportNode{}, false
 	}
 
 	members, ok := ParseImportMembers(scanner)
 	if !ok {
-		return importNode{}, false
+		return ImportNode{}, false
 	}
 
 	_, ok = scanner.Expect(lexer.BraceCloseToken)
 	if !ok {
-		return importNode{}, false
+		return ImportNode{}, false
 	}
 
 	_, ok = scanner.Expect(lexer.KwFromToken)
 	if !ok {
-		return importNode{}, false
+		return ImportNode{}, false
 	}
 
 	modulePathToken, ok := scanner.Expect(lexer.StringLiteralToken)
 	if !ok {
-		return importNode{}, false
+		return ImportNode{}, false
 	}
 
 	// Optional semicolon
@@ -45,8 +45,8 @@ func ParseImport(scanner *Scanner) (importNode, bool) {
 	}, modulePathToken.Value, members), true
 }
 
-func ParseImportMembers(scanner *Scanner) ([]importMemberNode, bool) {
-	var members = performance.NewFastArray[importMemberNode](8)
+func ParseImportMembers(scanner *Scanner) ([]ImportMemberNode, bool) {
+	var members = performance.NewFastArray[ImportMemberNode](8)
 
 	for !scanner.IsAtEOF() {
 		currentToken := scanner.Peek()

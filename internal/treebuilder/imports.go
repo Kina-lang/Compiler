@@ -32,7 +32,7 @@ func (t *Tree) ResolveImports(projectRoot string, currentFilePath string) Resolv
 
 	for _, child := range fileNode.Children {
 		switch child := child.(type) {
-			case importNode:
+			case ImportNode:
 				resolvedPath, err := resolveImportPath(projectRoot, currentFilePath, child.ModuleName)
 				if err != nil {
 					unquoted, _ := utils.GetStringLiteralValue(child.ModuleName)
