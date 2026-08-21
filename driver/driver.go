@@ -11,6 +11,7 @@ import (
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
 	"martinpetr.dev/kina/compiler/internal/lexer"
 	"martinpetr.dev/kina/compiler/internal/performance"
+	"martinpetr.dev/kina/compiler/internal/sem"
 	"martinpetr.dev/kina/compiler/internal/treebuilder"
 	"martinpetr.dev/kina/compiler/projectConfig"
 )
@@ -21,7 +22,11 @@ type Options struct {
 	EmitTree bool
 }
 
-type parseProjectFilesResult struct{}
+type parseProjectFilesResult struct{
+	FileTrees map[string]treebuilder.Tree
+	FileContents map[string][]byte
+	FileReporters map[string]*diagnostics.Reporter
+}
 
 type parseFileResult struct {
 	Imports []string
@@ -53,9 +58,41 @@ func Compile(projectPath string, opts Options) error {
 
 	// Parse (lex + ast) all project files
 	// Resolved imports are also parsed recursively (results cached)
-	_, err = parseProjectFiles(projectPath, absEntrypointPath, diagnosticsBag, opts)
+	parseResult, err := parseProjectFiles(projectPath, absEntrypointPath, diagnosticsBag, opts)
 	if err != nil {
 		return err
+	}
+
+	// Check if there are any diagnostics (errors/warnings) and print them
+	err = diagnosticsBag.Err(os.Stderr)
+	if err != nil {
+		return err
+	}
+
+	var semFiles []sem.InputFile
+	for filePath, tree := range parseResult.FileTrees {
+		semFiles = append(semFiles, sem.InputFile{
+			Path: filePath,
+			Contents: parseResult.FileContents[filePath],
+			Tree: &tree,
+			Reporter: parseResult.FileReporters[filePath],
+		})
+	}
+
+	// Semantically analyze the project files and build the symbol table
+	semContexts, err := sem.Process(projectPath, semFiles)
+	if err != nil {
+		return err
+	}
+
+	for filePath, ctx := range semContexts {
+		json, err := ctx.SymbolTable.String()
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("File: %s\n", filePath)
+		fmt.Println(json)
 	}
 
 	// Check if there are any diagnostics (errors/warnings) and print them
@@ -72,6 +109,9 @@ func Compile(projectPath string, opts Options) error {
 func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnosticsBag *diagnostics.Bag, opts Options) (*parseProjectFilesResult, error) {
 	var pathsToParse []string = []string{absEntrypointPath}                             // List of files to parse (entrypoint + imports)
 	var parsedFileResults map[string]parseFileResult = make(map[string]parseFileResult) // Cache of parsed file results (key is abs file path)
+
+	var fileContents map[string][]byte = make(map[string][]byte)
+	var fileReporters map[string]*diagnostics.Reporter = make(map[string]*diagnostics.Reporter)
 
 	var cwd, err = os.Getwd()
 	if err != nil {
@@ -96,9 +136,13 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 			relativeFilePath,
 			src,
 		)
+		diagnosticReporter := diagnosticsBag.For(diagnosticFile)
+
+		fileContents[pathsToParse[0]] = src
+		fileReporters[pathsToParse[0]] = diagnosticReporter
 
 		// Parse the first file in the list
-		res, err := parseFile(projectRootPath, pathsToParse[0], src, diagnosticsBag.For(diagnosticFile), opts)
+		res, err := parseFile(projectRootPath, pathsToParse[0], src, diagnosticReporter, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +165,16 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 		pathsToParse = pathsToParse[1:]
 	}
 
-	return &parseProjectFilesResult{}, nil
+	trees := make(map[string]treebuilder.Tree)
+	for filePath, parsedFileResult := range parsedFileResults {
+		trees[filePath] = parsedFileResult.Tree
+	}
+
+	return &parseProjectFilesResult{
+		FileTrees: trees,
+		FileContents: fileContents,
+		FileReporters: fileReporters,
+	}, nil
 }
 
 // Parses (lex + ast) a single file and returns the result
