@@ -3,6 +3,8 @@ package lexer
 var keywordMap = map[string]TokenType{
 	"func":   KwFuncToken,
 	"return": KwReturnToken,
+	"import": KwImportToken,
+	"from":   KwFromToken,
 	"int":    KwIntToken,
 	"bool":   KwBoolToken,
 	"string": KwStringToken,
