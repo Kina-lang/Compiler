@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
@@ -106,9 +107,12 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 		parsedFileResults[pathsToParse[0]] = *res
 
 		// Add all imports of the parsed file to the list of files to parse
-		// except for the ones that have already been parsed
+		// except for the ones that have already been parsed or are already in the list of files to parse
 		for _, imp := range res.Imports {
-			if _, ok := parsedFileResults[imp]; !ok {
+			_, alreadyParsed := parsedFileResults[imp]
+			alreadyInList := slices.Contains(pathsToParse, imp)
+
+			if !alreadyParsed && !alreadyInList {
 				pathsToParse = append(pathsToParse, imp)
 			}
 		}
@@ -151,8 +155,10 @@ func parseFile(projectRootPath string, filePath string, src []byte, reporter *di
 
 	fmt.Printf("Lexer: %s, ASI: %s, AST: %s\n", lexerTime, asiTime, astTime)
 
+	resolvedImports := tree.ResolveImports(projectRootPath, filePath)
+
 	return &parseFileResult{
-		Imports: []string{},
+		Imports: resolvedImports.GetPaths(),
 		Tree: tree,
 	}, nil
 }
