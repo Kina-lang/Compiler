@@ -8,6 +8,8 @@ type FastArray[T any] struct {
 }
 
 func NewFastArray[T any](chunkSize int) *FastArray[T] {
+	chunkSize = max(chunkSize, 1)
+
 	return &FastArray[T]{
 		items: make([]T, 0, chunkSize),
 		chunkSize: chunkSize,
