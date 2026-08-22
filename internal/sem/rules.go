@@ -3,7 +3,7 @@ package sem
 import "martinpetr.dev/kina/compiler/internal/diagnostics"
 
 func validateMainFunction(table *SymbolTable, reporter *diagnostics.Reporter) bool {
-	var wantedSignature = NewFunctionSignature(make([]TypeSignature, 0), NewPrimitiveTypeSignature(string(IntType)))
+	var wantedSignature = NewFunctionSignature(make([]TypeSignature, 0), NewPrimitiveTypeSignature(string(VoidType)))
 
 	symbol, found := table.Lookup("main")
 	if !found {

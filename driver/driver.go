@@ -10,6 +10,7 @@ import (
 
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
 	"martinpetr.dev/kina/compiler/internal/lexer"
+	"martinpetr.dev/kina/compiler/internal/llvmbuilder"
 	"martinpetr.dev/kina/compiler/internal/performance"
 	"martinpetr.dev/kina/compiler/internal/sem"
 	"martinpetr.dev/kina/compiler/internal/treebuilder"
@@ -94,6 +95,44 @@ func Compile(projectPath string, opts Options) error {
 	err = diagnosticsBag.Err(os.Stderr)
 	if err != nil {
 		return err
+	}
+
+	var llvmFiles []llvmbuilder.InputFile
+	for filePath, ctx := range semContexts {
+		tree := parseResult.FileTrees[filePath]
+
+		llvmFiles = append(llvmFiles, llvmbuilder.InputFile{
+			FilePath: filePath,
+			Tree: &tree,
+			Table: ctx.SymbolTable,
+		})
+	}
+
+	irFiles, err := llvmbuilder.BuildLLVM(projectPath, absEntrypointPath, llvmFiles)
+	if err != nil {
+		return err
+	}
+
+	var llFiles []string
+
+	for filePath, ir := range irFiles {
+		relFilePath, err := filepath.Rel(projectPath, filePath)
+		if err != nil {
+			return err
+		}
+
+		irFilePath := path.Join(opts.Out, relFilePath + ".ll")
+		llFiles = append(llFiles, irFilePath)
+
+		irFileParentDir := path.Dir(irFilePath)
+
+		if err := os.MkdirAll(irFileParentDir, os.ModePerm); err != nil {
+			return err
+		}
+
+		if err := os.WriteFile(irFilePath, []byte(ir), 0644); err != nil {
+			return err
+		}
 	}
 
 	return nil
