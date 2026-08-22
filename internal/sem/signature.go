@@ -8,7 +8,7 @@ const (
 )
 
 type BaseSignature struct {
-	Kind SignatureKind
+	Kind SignatureKind `json:"kind"`
 }
 
 type Signature interface{ Base() BaseSignature }
@@ -29,7 +29,7 @@ func (BaseTypeSignature) isTypeSignature() {}
 
 type PrimitiveTypeSignature struct {
 	BaseTypeSignature
-	Name string
+	Name string `json:"name"`
 }
 
 func NewPrimitiveTypeSignature(name string) PrimitiveTypeSignature {
@@ -49,8 +49,8 @@ func (s *PrimitiveTypeSignature) String() string {
 
 type FunctionSignature struct {
 	BaseSignature
-	Parameters []TypeSignature
-	ReturnType TypeSignature
+	Parameters []TypeSignature `json:"parameters"`
+	ReturnType TypeSignature `json:"return"`
 }
 
 func NewFunctionSignature(parameters []TypeSignature, returnType TypeSignature) FunctionSignature {

@@ -8,14 +8,14 @@ import (
 )
 
 type Symbol struct {
-	Name string
-	Signature *Signature
-	Table *SymbolTable
+	Name string `json:"name"`
+	Signature *Signature `json:"signature,omitempty"`
+	Table *SymbolTable `json:"table,omitempty"`
 	Node treebuilder.Node `json:"-"`
 }
 
 type SymbolTable struct {
-	Symbols map[string]*Symbol
+	Symbols map[string]*Symbol `json:"symbols"`
 	Parent *SymbolTable `json:"-"`
 }
 

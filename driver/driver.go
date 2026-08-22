@@ -20,6 +20,7 @@ type Options struct {
 	Out string
 	EmitTokens bool
 	EmitTree bool
+	EmitSem bool
 }
 
 type parseProjectFilesResult struct{
@@ -86,13 +87,7 @@ func Compile(projectPath string, opts Options) error {
 	}
 
 	for filePath, ctx := range semContexts {
-		json, err := ctx.SymbolTable.String()
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("File: %s\n", filePath)
-		fmt.Println(json)
+		EmitDebugArtifact(opts.EmitSem, "sem", ctx.SymbolTable.String, projectPath, opts.Out, filePath)
 	}
 
 	// Check if there are any diagnostics (errors/warnings) and print them
@@ -181,8 +176,8 @@ func parseProjectFiles(projectRootPath string, absEntrypointPath string, diagnos
 func parseFile(projectRootPath string, filePath string, src []byte, reporter *diagnostics.Reporter, opts Options) (*parseFileResult, error) {
 	fmt.Printf("Parsing file %s...\n", filePath)
 
-	startLexer := time.Now()
 	performance.ReportHeapSize("start")
+	startLexer := time.Now()
 
 	// Lex the file
 	lexerResult := lexer.ProcessFile(filePath, src, reporter)
