@@ -13,6 +13,7 @@ import (
 	"martinpetr.dev/kina/compiler/internal/llvmbuilder"
 	"martinpetr.dev/kina/compiler/internal/performance"
 	"martinpetr.dev/kina/compiler/internal/sem"
+	"martinpetr.dev/kina/compiler/internal/tools"
 	"martinpetr.dev/kina/compiler/internal/treebuilder"
 	"martinpetr.dev/kina/compiler/projectConfig"
 )
@@ -35,6 +36,11 @@ type parseFileResult struct {
 	Tree treebuilder.Tree
 }
 
+// TODO: Point to toolchain installation dir
+func RuntimePath() string {
+	return "../runtime/build/libkinart.a"
+}
+
 func Compile(projectPath string, opts Options) error {
 	// Resolve and parse kina.toml project config file
 	configPath := path.Join(projectPath, "kina.toml")
@@ -44,6 +50,7 @@ func Compile(projectPath string, opts Options) error {
 	}
 
 	fmt.Printf("Compiling project %s...\n", projectPath)
+	start := time.Now()
 
 	// Get the absolute path to the entry file
 	absEntrypointPath, err := filepath.Abs(path.Join(projectPath, config.Project.Entry))
@@ -134,6 +141,26 @@ func Compile(projectPath string, opts Options) error {
 			return err
 		}
 	}
+
+	var objectFiles []string
+	for _, llFile := range llFiles {
+		src, err := os.ReadFile(llFile)
+		if err != nil {
+			return err
+		}
+
+		outPath := llFile[:len(llFile)-3] + ".o"
+		objectFiles = append(objectFiles, outPath)
+
+		tools.LlcBuildObject(src, outPath)
+	}
+
+	var allObjectFiles []string = append(objectFiles, RuntimePath())
+
+	tools.ClangLink("x86_64-unknown-linux-gnu", allObjectFiles, opts.Out + "/main")
+
+	took := time.Since(start)
+	fmt.Printf("Compilation finished in %s\n", took)
 
 	return nil
 }
