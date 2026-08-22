@@ -12,9 +12,21 @@ func collect(file InputFile, parent *SymbolTable) (*SymbolTable, error) {
 	for _, node := range file.Tree.Node.Children {
 		switch node := node.(type) {
 			case treebuilder.FunctionDeclarationNode:
-				symbol := NewSymbol(node.Name)
+				fnSymbol := NewSymbol(node.Name, NewSymbolTable(table))
 
-				table.Define(symbol)
+				for _, param := range node.Parameters {
+					paramSymbol := NewSymbol(param.Name, nil)
+
+					ok := fnSymbol.Table.Define(paramSymbol)
+					if !ok {
+						reportAlreadyDefinedSymbolError(file.Reporter, param, param.Name)
+					}
+				}
+
+				ok := table.Define(fnSymbol)
+				if !ok {
+					reportAlreadyDefinedSymbolError(file.Reporter, node, node.Name)
+				}
 			case treebuilder.ImportNode:
 				for _, member := range node.Members {
 					var name = member.Name
@@ -22,9 +34,12 @@ func collect(file InputFile, parent *SymbolTable) (*SymbolTable, error) {
 						name = member.Alias
 					}
 
-					symbol := NewSymbol(name)
+					symbol := NewSymbol(name, nil)
 
-					table.Define(symbol)
+					ok := table.Define(symbol)
+					if !ok {
+						reportAlreadyDefinedSymbolError(file.Reporter, member, name)
+					}
 				}
 			default:
 				file.Reporter.Errorf(node.Base().Span.Start, node.Base().Span.End, diagnostics.IllegalNodeInTopLevelDiagnosticCode, "Illegal node in top-level: %s", node.Base().Kind)

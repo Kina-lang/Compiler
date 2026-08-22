@@ -1,20 +1,26 @@
 package sem
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"martinpetr.dev/kina/compiler/internal/diagnostics"
+)
 
 type Symbol struct {
 	Name string
 	Signature *Signature
+	Table *SymbolTable
 }
 
 type SymbolTable struct {
 	Symbols map[string]*Symbol
-	Parent *SymbolTable
+	Parent *SymbolTable `json:"-"`
 }
 
 type FileContext struct {
 	FilePath string
 	SymbolTable *SymbolTable
+	Reporter *diagnostics.Reporter
 }
 
 func NewSymbolTable(parent *SymbolTable) *SymbolTable {
@@ -24,9 +30,10 @@ func NewSymbolTable(parent *SymbolTable) *SymbolTable {
 	}
 }
 
-func NewSymbol(name string) *Symbol {
+func NewSymbol(name string, table *SymbolTable) *Symbol {
 	return &Symbol{
 		Name: name,
+		Table: table,
 	}
 }
 
@@ -38,14 +45,31 @@ func (t *SymbolTable) Lookup(name string) (*Symbol, bool) {
 		return symbol, true
 	}
 
+	hasParent := t.Parent != nil
+	if !hasParent {
+		return nil, false
+	}
+
 	// Lookup in parent table
 	symbol, found = t.Parent.Lookup(name)
 	return symbol, found
 }
 
+// Tries to find the symbol only in the current scope
+func (t *SymbolTable) DirectLookup(name string) (*Symbol, bool) {
+	symbol, found := t.Symbols[name]
+	return symbol, found
+}
+
 // Defines a new symbol in the current symbol table
-func (t *SymbolTable) Define(symbol *Symbol) {
+func (t *SymbolTable) Define(symbol *Symbol) bool {
+	if _, exists := t.Symbols[symbol.Name]; exists {
+		return false
+	}
+
 	t.Symbols[symbol.Name] = symbol
+
+	return true
 }
 
 func (t *SymbolTable) String() (string, error) {
@@ -53,6 +77,6 @@ func (t *SymbolTable) String() (string, error) {
 	return string(str), err
 }
 
-func (s *Symbol) SetSignature(signature *Signature) {
-	s.Signature = signature
+func (s *Symbol) SetSignature(signature Signature) {
+	s.Signature = &signature
 }
