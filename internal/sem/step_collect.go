@@ -12,10 +12,10 @@ func collect(file InputFile, parent *SymbolTable) (*SymbolTable, error) {
 	for _, node := range file.Tree.Node.Children {
 		switch node := node.(type) {
 			case treebuilder.FunctionDeclarationNode:
-				fnSymbol := NewSymbol(node.Name, NewSymbolTable(table))
+				fnSymbol := NewSymbol(node.Name, NewSymbolTable(table), node)
 
 				for _, param := range node.Parameters {
-					paramSymbol := NewSymbol(param.Name, nil)
+					paramSymbol := NewSymbol(param.Name, nil, param)
 
 					ok := fnSymbol.Table.Define(paramSymbol)
 					if !ok {
@@ -34,7 +34,7 @@ func collect(file InputFile, parent *SymbolTable) (*SymbolTable, error) {
 						name = member.Alias
 					}
 
-					symbol := NewSymbol(name, nil)
+					symbol := NewSymbol(name, nil, member)
 
 					ok := table.Define(symbol)
 					if !ok {

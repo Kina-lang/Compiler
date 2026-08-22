@@ -129,17 +129,35 @@ func (bag *Bag) Render(w io.Writer) {
 	})
 
 	for _, diagnostic := range bag.list {
-		line, col := diagnostic.File.LineCol(diagnostic.Start) // Get line and column of the diagnostic (the one where the diagnostic starts)
+		var line, col int
+		var positionDefined bool = diagnostic.Start >= 0 && diagnostic.End >= 0
+
+		if positionDefined {
+			line, col = diagnostic.File.LineCol(diagnostic.Start) // Get line and column of the diagnostic (the one where the diagnostic starts)
+		}
+
+		var posString string
+		if positionDefined {
+			posString = fmt.Sprintf("%s:%d:%d", diagnostic.File.Name, line, col)
+		} else {
+			posString = diagnostic.File.Name
+		}
 
 		// Print file:line:col (clickable in IDEs), code and error message
 		if bag.Color {
-			fmt.Fprintf(w, "%s %s%s %s\n", color.BlackString(fmt.Sprintf("%s:%d:%d", diagnostic.File.Name, line, col)), color.HiRedString(diagnostic.Code), color.BlackString(":"), diagnostic.Message)
+			fmt.Fprintf(w, "%s %s%s %s\n", color.BlackString(posString), color.HiRedString(diagnostic.Code), color.BlackString(":"), diagnostic.Message)
 		} else {
-			fmt.Fprintf(w, "%s:%d:%d %s: %s\n", diagnostic.File.Name, line, col, diagnostic.Code, diagnostic.Message)
+			fmt.Fprintf(w, "%s %s: %s\n", posString, diagnostic.Code, diagnostic.Message)
+		}
+
+		if !positionDefined {
+			continue
 		}
 
 		// Print source code line and pointer to the columns affected
-		fmt.Fprintf(w, "  %s\n", diagnostic.File.LineText(line))
-		fmt.Fprintf(w, "  %s%s\n", strings.Repeat(" ", col-1), strings.Repeat("^", max(1, diagnostic.End-diagnostic.Start)))
+		lineText := diagnostic.File.LineText(line)
+
+		fmt.Fprintf(w, "  %s\n", lineText)
+		fmt.Fprintf(w, "  %s%s\n", strings.Repeat(" ", col-1), strings.Repeat("^", max(1, min(diagnostic.End-diagnostic.Start, len(lineText)))))
 	}
 }

@@ -12,7 +12,7 @@ type InputFile struct {
 	Reporter *diagnostics.Reporter
 }
 
-func Process(projectRootPath string, files []InputFile) (map[string]*FileContext, error) {
+func Process(projectRootPath string, entryPointPath string, files []InputFile) (map[string]*FileContext, error) {
 	fileContexts := make(map[string]*FileContext)
 
 	// Collect
@@ -25,6 +25,7 @@ func Process(projectRootPath string, files []InputFile) (map[string]*FileContext
 		fileContexts[file.Path] = &FileContext{
 			FilePath: file.Path,
 			SymbolTable: symbolTable,
+			Reporter: file.Reporter,
 		}
 	}
 
@@ -48,6 +49,9 @@ func Process(projectRootPath string, files []InputFile) (map[string]*FileContext
 		fileContexts[file.Path] = newCtx
 	}
 
+	// Validate all rules (main function, etc.)
+	ValidateAllRules(entryPointPath, fileContexts)
+
 	return fileContexts, nil
 }
 
@@ -62,6 +66,13 @@ func reportSymbolNotFoundError(reporter *diagnostics.Reporter, node treebuilder.
 
 func reportAlreadyDefinedSymbolError(reporter *diagnostics.Reporter, node treebuilder.Node, name string) {
 	reporter.Errorf(node.Base().Span.Start, node.Base().Span.End, diagnostics.SymbolAlreadyDefinedDiagnosticCode, "Symbol already defined: %s", name)
+}
+
+func reportTypeMismatchError(reporter *diagnostics.Reporter, node treebuilder.Node, expected Signature, actual Signature) {
+	expectedStr := BeautifySignature(expected)
+	actualStr := BeautifySignature(actual)
+
+	reporter.Errorf(node.Base().Span.Start, node.Base().Span.End, diagnostics.TypeMismatchDiagnosticCode, "Type mismatch: expected %s, got %s", expectedStr, actualStr)
 }
 
 // TODO: Add support for more complex types (e.g., arrays, generics, etc.)

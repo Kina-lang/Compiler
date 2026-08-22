@@ -80,7 +80,7 @@ func Compile(projectPath string, opts Options) error {
 	}
 
 	// Semantically analyze the project files and build the symbol table
-	semContexts, err := sem.Process(projectPath, semFiles)
+	semContexts, err := sem.Process(projectPath, absEntrypointPath, semFiles)
 	if err != nil {
 		return err
 	}

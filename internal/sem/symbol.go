@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 
 	"martinpetr.dev/kina/compiler/internal/diagnostics"
+	"martinpetr.dev/kina/compiler/internal/treebuilder"
 )
 
 type Symbol struct {
 	Name string
 	Signature *Signature
 	Table *SymbolTable
+	Node treebuilder.Node `json:"-"`
 }
 
 type SymbolTable struct {
@@ -30,10 +32,11 @@ func NewSymbolTable(parent *SymbolTable) *SymbolTable {
 	}
 }
 
-func NewSymbol(name string, table *SymbolTable) *Symbol {
+func NewSymbol(name string, table *SymbolTable, node treebuilder.Node) *Symbol {
 	return &Symbol{
 		Name: name,
 		Table: table,
+		Node: node,
 	}
 }
 

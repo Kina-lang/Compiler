@@ -43,6 +43,10 @@ func NewPrimitiveTypeSignature(name string) PrimitiveTypeSignature {
 	}
 }
 
+func (s *PrimitiveTypeSignature) String() string {
+	return s.Name
+}
+
 type FunctionSignature struct {
 	BaseSignature
 	Parameters []TypeSignature
